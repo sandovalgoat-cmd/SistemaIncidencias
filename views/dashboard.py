@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 from views.usuarios import VistaUsuarios
 from views.nuevo_ticket import VistaNuevoTicket
+from views.tickets import VistaTickets
 
 
 class Dashboard(ctk.CTkToplevel):
@@ -420,44 +421,12 @@ class Dashboard(ctk.CTkToplevel):
 
     def mostrar_tickets(self):
 
-        self.limpiar_contenido()
-        self.crear_titulo("Tickets")
+            self.limpiar_contenido()
 
-        rol = self.usuario["rol"]
-
-        if rol == "Empleado":
-
-            mensaje = (
-                "Aquí se mostrarán únicamente los tickets "
-                "registrados por el empleado."
+            VistaTickets(
+                master=self.contenido,
+                usuario_sesion=self.usuario
             )
-
-        elif rol == "Tecnico":
-
-            mensaje = (
-                "Aquí se mostrarán únicamente los tickets "
-                "asignados al técnico."
-            )
-
-        else:
-
-            mensaje = (
-                "Aquí se mostrarán todos los tickets registrados "
-                "en el sistema."
-            )
-
-        texto = ctk.CTkLabel(
-            self.contenido,
-            text=mensaje,
-            font=("Arial", 17),
-            text_color="#374151"
-        )
-
-        texto.pack(
-            padx=40,
-            pady=20,
-            anchor="w"
-        )
 
     # ==================================================
     # CATÁLOGOS

@@ -31,28 +31,58 @@ class TicketController:
             )
 
         if not id_categoria:
-            return False, "Debe seleccionar una categoría."
+            return False, "Seleccione una categoría."
 
         if not id_prioridad:
-            return False, "Debe seleccionar una prioridad."
+            return False, "Seleccione una prioridad."
 
         try:
             resultado = Ticket.crear(
-                titulo,
-                descripcion,
-                id_usuario,
-                id_categoria,
-                id_prioridad
+                titulo=titulo,
+                descripcion=descripcion,
+                id_usuario=id_usuario,
+                id_categoria=id_categoria,
+                id_prioridad=id_prioridad
             )
 
             return (
                 True,
-                f"Ticket registrado correctamente.\n\n"
+                "Ticket registrado correctamente.\n\n"
                 f"Folio: {resultado['folio']}"
             )
 
         except mysql.connector.Error as error:
-            return False, f"Error de base de datos: {error}"
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
 
         except Exception as error:
-            return False, f"No fue posible crear el ticket: {error}"
+            return (
+                False,
+                f"No fue posible crear el ticket: {error}"
+            )
+
+    @staticmethod
+    def listar_tickets(usuario_sesion):
+        try:
+            tickets = Ticket.listar_por_usuario(
+                id_usuario=usuario_sesion["id_usuario"],
+                rol=usuario_sesion["rol"]
+            )
+
+            return True, tickets
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                "No fue posible consultar los tickets.\n\n"
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                "No fue posible consultar los tickets.\n\n"
+                f"Detalle: {error}"
+            )
