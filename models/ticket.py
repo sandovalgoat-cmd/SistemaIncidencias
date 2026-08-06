@@ -8,6 +8,7 @@ class Ticket:
     def obtener_estado_por_nombre(nombre_estado):
         conexion = conectar()
         cursor = conexion.cursor(dictionary=True)
+        
 
         try:
             sql = """

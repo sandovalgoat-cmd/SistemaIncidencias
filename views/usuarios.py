@@ -216,18 +216,19 @@ class VistaUsuarios(ctk.CTkFrame):
                 for fila in datos_roles
             }
 
-            if self.usuario_sesion["rol"] == "EncargadoTI":
+            rol_sesion = self.usuario_sesion["rol"]
+
+            if rol_sesion == "EncargadoTI":
                 roles_permitidos = [
-                "Empleado",
-                "Tecnico"
+                    "Empleado",
+                    "Tecnico"
                 ]
 
-            self.roles = {
-                nombre: id_rol
-                for nombre, id_rol in self.roles.items()
-                if nombre in roles_permitidos
-            }
-
+                self.roles = {
+                    nombre: id_rol
+                    for nombre, id_rol in self.roles.items()
+                    if nombre in roles_permitidos
+                }
             cursor.execute(
                 "SELECT id_area, nombre FROM areas ORDER BY nombre"
             )
