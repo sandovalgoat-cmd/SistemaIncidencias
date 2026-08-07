@@ -4,7 +4,7 @@ from tkinter import messagebox
 from views.usuarios import VistaUsuarios
 from views.nuevo_ticket import VistaNuevoTicket
 from views.tickets import VistaTickets
-
+from controllers.ticket_controller import TicketController
 
 class Dashboard(ctk.CTkToplevel):
 
@@ -343,11 +343,45 @@ class Dashboard(ctk.CTkToplevel):
             pady=35
         )
 
+        # Consultar estadísticas reales
+        exito, resultado = TicketController.obtener_estadisticas(
+            self.usuario
+        )
+
+        if exito:
+            nuevos = resultado["nuevos"]
+            en_proceso = resultado["en_proceso"]
+            urgentes = resultado["urgentes"]
+            cerrados = resultado["cerrados"]
+
+        else:
+            nuevos = 0
+            en_proceso = 0
+            urgentes = 0
+            cerrados = 0
+
+            print(
+                "Error cargando estadísticas:",
+                resultado
+            )
+
         tarjetas = [
-            ("Tickets nuevos", "0"),
-            ("En proceso", "0"),
-            ("Urgentes", "0"),
-            ("Cerrados", "0")
+            (
+                "Tickets nuevos",
+                nuevos
+            ),
+            (
+                "En proceso",
+                en_proceso
+            ),
+            (
+                "Urgentes",
+                urgentes
+            ),
+            (
+                "Cerrados",
+                cerrados
+            )
         ]
 
         for indice, datos in enumerate(tarjetas):
@@ -378,11 +412,13 @@ class Dashboard(ctk.CTkToplevel):
                 text_color="#6B7280"
             )
 
-            etiqueta.pack(pady=(25, 5))
+            etiqueta.pack(
+                pady=(25, 5)
+            )
 
             cantidad = ctk.CTkLabel(
                 tarjeta,
-                text=datos[1],
+                text=str(datos[1]),
                 font=("Arial", 32, "bold"),
                 text_color="#1565C0"
             )

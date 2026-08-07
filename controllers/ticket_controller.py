@@ -86,3 +86,26 @@ class TicketController:
                 "No fue posible consultar los tickets.\n\n"
                 f"Detalle: {error}"
             )
+
+    @staticmethod
+    def obtener_estadisticas(usuario_sesion):
+
+        try:
+            estadisticas = Ticket.obtener_estadisticas(
+                id_usuario=usuario_sesion["id_usuario"],
+                rol=usuario_sesion["rol"]
+            )
+
+            return True, estadisticas
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error al consultar estadísticas: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible consultar las estadísticas: {error}"
+            )   

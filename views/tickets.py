@@ -2,6 +2,8 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 
 from controllers.ticket_controller import TicketController
+from views.detalle_ticket import VistaDetalleTicket
+
 
 
 class VistaTickets(ctk.CTkFrame):
@@ -460,6 +462,7 @@ class VistaTickets(ctk.CTkFrame):
         )
 
     def ver_detalle(self):
+
         if self.ticket_seleccionado is None:
             messagebox.showwarning(
                 "Seleccionar ticket",
@@ -467,28 +470,26 @@ class VistaTickets(ctk.CTkFrame):
             )
             return
 
-        ticket = self.ticket_seleccionado
-        fecha = ticket["fecha_creacion"]
+        # Limpia el área principal del Dashboard
+        for widget in self.master.winfo_children():
+            widget.destroy()
 
-        fecha_texto = (
-            fecha.strftime("%d/%m/%Y %H:%M")
-            if fecha
-            else "Sin fecha"
+        # Muestra la vista completa del detalle del ticket
+        VistaDetalleTicket(
+            master=self.master,
+            ticket=self.ticket_seleccionado,
+            usuario_sesion=self.usuario_sesion,
+            regresar_callback=self.regresar_a_lista
         )
 
-        mensaje = (
-            f"Folio: {ticket['folio']}\n\n"
-            f"Título: {ticket['titulo']}\n\n"
-            f"Reportado por: {ticket['reportado_por']}\n"
-            f"Categoría: {ticket['categoria']}\n"
-            f"Prioridad: {ticket['prioridad']}\n"
-            f"Estado: {ticket['estado']}\n"
-            f"Técnico: {ticket['tecnico']}\n"
-            f"Fecha: {fecha_texto}\n\n"
-            f"Descripción:\n{ticket['descripcion']}"
-        )
+    def regresar_a_lista(self):
 
-        messagebox.showinfo(
-            "Detalle del ticket",
-            mensaje
-        )
+        # Limpia el área principal
+        for widget in self.master.winfo_children():
+            widget.destroy()
+
+        # Vuelve a mostrar la lista de tickets
+        VistaTickets(
+            master=self.master,
+            usuario_sesion=self.usuario_sesion
+        )    

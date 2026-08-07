@@ -240,3 +240,113 @@ class Ticket:
                 and conexion.is_connected()
             ):
                 conexion.close()
+
+    @staticmethod
+    def obtener_estadisticas(id_usuario, rol):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            condiciones = []
+            parametros = []
+
+            # Empleado: solo sus propios tickets
+            if rol == "Empleado":
+                condiciones.append("t.id_usuario = %s")
+                parametros.append(id_usuario)
+
+            # Técnico: solo tickets que tiene asignados
+            elif rol == "Tecnico":
+                condiciones.append("t.id_tecnico = %s")
+                parametros.append(id_usuario)
+
+            # Administrador y EncargadoTI: todos
+            elif rol in ("Administrador", "EncargadoTI"):
+                pass
+
+            else:
+                return {
+                    "nuevos": 0,
+                    "en_proceso": 0,
+                    "urgentes": 0,
+                    "cerrados": 0
+                }
+
+            where_sql = ""
+
+            if condiciones:
+                where_sql = "WHERE " + " AND ".join(condiciones)
+
+            sql = f"""
+                SELECT
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Nuevo'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS nuevos,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'En Proceso'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS en_proceso,
+
+                    SUM(
+                        CASE
+                            WHEN p.nombre = 'Urgente'
+                            AND e.nombre <> 'Cerrado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS urgentes,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Cerrado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS cerrados
+
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                INNER JOIN prioridades AS p
+                    ON t.id_prioridad = p.id_prioridad
+
+                {where_sql}
+            """
+
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
+
+            resultado = cursor.fetchone()
+
+            return {
+                "nuevos": resultado["nuevos"] or 0,
+                "en_proceso": resultado["en_proceso"] or 0,
+                "urgentes": resultado["urgentes"] or 0,
+                "cerrados": resultado["cerrados"] or 0
+            }
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
