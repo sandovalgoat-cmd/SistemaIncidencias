@@ -350,3 +350,192 @@ class Ticket:
                 and conexion.is_connected()
             ):
                 conexion.close()
+
+    @staticmethod
+    def listar_tecnicos():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    u.id_usuario,
+                    u.nombre,
+                    u.apellido,
+                    CONCAT(
+                        u.nombre,
+                        ' ',
+                        u.apellido
+                    ) AS nombre_completo
+                FROM usuarios AS u
+                INNER JOIN roles AS r
+                    ON u.id_rol = r.id_rol
+                WHERE r.nombre = 'Tecnico'
+                  AND u.estado = 1
+                ORDER BY
+                    u.nombre,
+                    u.apellido
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def asignar_tecnico(
+        id_ticket,
+        id_tecnico,
+        id_usuario_accion
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            # ==========================================
+            # OBTENER ESTADO "ASIGNADO"
+            # ==========================================
+
+            sql_estado = """
+                SELECT id_estado
+                FROM estados
+                WHERE nombre = 'Asignado'
+                LIMIT 1
+            """
+
+            cursor.execute(sql_estado)
+
+            estado = cursor.fetchone()
+
+            if estado is None:
+                raise ValueError(
+                    "No existe el estado 'Asignado' "
+                    "en la base de datos."
+                )
+
+            id_estado_asignado = estado["id_estado"]
+
+            # ==========================================
+            # OBTENER DATOS DEL TÉCNICO
+            # ==========================================
+
+            sql_tecnico = """
+                SELECT
+                    nombre,
+                    apellido
+                FROM usuarios
+                WHERE id_usuario = %s
+                LIMIT 1
+            """
+
+            cursor.execute(
+                sql_tecnico,
+                (id_tecnico,)
+            )
+
+            tecnico = cursor.fetchone()
+
+            if tecnico is None:
+                raise ValueError(
+                    "El técnico seleccionado no existe."
+                )
+
+            nombre_tecnico = (
+                f"{tecnico['nombre']} "
+                f"{tecnico['apellido']}"
+            )
+
+            # ==========================================
+            # ACTUALIZAR TICKET
+            # ==========================================
+
+            sql_actualizar = """
+                UPDATE tickets
+                SET
+                    id_tecnico = %s,
+                    id_estado = %s,
+                    fecha_asignacion = NOW()
+                WHERE id_ticket = %s
+            """
+
+            cursor.execute(
+                sql_actualizar,
+                (
+                    id_tecnico,
+                    id_estado_asignado,
+                    id_ticket
+                )
+            )
+
+            if cursor.rowcount == 0:
+                raise ValueError(
+                    "No fue posible encontrar el ticket."
+                )
+
+            # ==========================================
+            # REGISTRAR HISTORIAL
+            # ==========================================
+
+            accion = (
+                f"Ticket asignado al técnico "
+                f"{nombre_tecnico}"
+            )
+
+            sql_historial = """
+                INSERT INTO historial (
+                    id_ticket,
+                    id_usuario,
+                    accion,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            cursor.execute(
+                sql_historial,
+                (
+                    id_ticket,
+                    id_usuario_accion,
+                    accion
+                )
+            )
+
+            conexion.commit()
+
+            return True
+
+        except Exception:
+            if conexion is not None:
+                conexion.rollback()
+
+            raise
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()

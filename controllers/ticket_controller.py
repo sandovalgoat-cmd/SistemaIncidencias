@@ -109,3 +109,70 @@ class TicketController:
                 False,
                 f"No fue posible consultar las estadísticas: {error}"
             )   
+
+    @staticmethod
+    def listar_tecnicos():
+        try:
+            tecnicos = Ticket.listar_tecnicos()
+
+            return True, tecnicos
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error al consultar técnicos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible consultar técnicos: {error}"
+            )
+           
+    @staticmethod
+    def asignar_tecnico(
+        id_ticket,
+        id_tecnico,
+        usuario_sesion
+    ):
+        rol = usuario_sesion["rol"]
+
+        if rol not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para asignar técnicos."
+            )
+
+        if not id_tecnico:
+            return (
+                False,
+                "Seleccione un técnico."
+            )
+
+        try:
+            Ticket.asignar_tecnico(
+                id_ticket=id_ticket,
+                id_tecnico=id_tecnico,
+                id_usuario_accion=usuario_sesion["id_usuario"]
+            )
+
+            return (
+                True,
+                "Técnico asignado correctamente."
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible asignar el técnico: {error}"
+            )    
+

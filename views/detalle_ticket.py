@@ -1,4 +1,10 @@
+from doctest import master
+
 import customtkinter as ctk
+import customtkinter as ctk
+from tkinter import messagebox
+
+from controllers.ticket_controller import TicketController
 
 
 class VistaDetalleTicket(ctk.CTkFrame):
@@ -309,9 +315,19 @@ class VistaDetalleTicket(ctk.CTkFrame):
             state="disabled"
         )
 
-    # ==================================================
-    # CREAR ETIQUETA DE CAMPO
-    # ==================================================
+        # ==============================================
+        # ASIGNACIÓN DE TÉCNICO
+        # ==============================================
+
+        if self.usuario_sesion["rol"] in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            self.crear_panel_asignacion(
+                contenedor,
+                fila=12
+            )
+
 
     def crear_etiqueta(
         self,
@@ -372,3 +388,195 @@ class VistaDetalleTicket(ctk.CTkFrame):
             padx=padx,
             pady=(0, 5)
         )
+
+    def crear_panel_asignacion(
+        self,
+        master,
+        fila
+    ):
+
+        panel = ctk.CTkFrame(
+            master,
+            fg_color="#EEF2FF",
+            corner_radius=10
+        )
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 30)
+        )
+
+        panel.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        panel.grid_columnconfigure(
+            1,
+            weight=1
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text="Asignación de técnico",
+            font=("Arial", 17, "bold"),
+            text_color="#1F2937"
+        ).grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="w",
+            padx=20,
+            pady=(20, 10)
+        )
+
+        self.tecnicos = {}
+
+        exito, resultado = (
+            TicketController.listar_tecnicos()
+        )
+
+        if not exito:
+            ctk.CTkLabel(
+                panel,
+                text=resultado,
+                text_color="#C62828"
+            ).grid(
+                row=1,
+                column=0,
+                columnspan=2,
+                padx=20,
+                pady=10
+            )
+
+            return
+
+        self.tecnicos = {
+            tecnico["nombre_completo"]:
+            tecnico["id_usuario"]
+            for tecnico in resultado
+        }
+
+        lista_tecnicos = list(
+            self.tecnicos.keys()
+        )
+
+        if not lista_tecnicos:
+            lista_tecnicos = [
+                "No hay técnicos disponibles"
+            ]
+
+        self.combo_tecnico = ctk.CTkComboBox(
+            panel,
+            values=lista_tecnicos,
+            state="readonly",
+            height=40,
+            width=300
+        )
+
+        self.combo_tecnico.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=(20, 10),
+            pady=(5, 20)
+        )
+
+        # Seleccionar técnico actual si existe
+        tecnico_actual = self.ticket["tecnico"]
+
+        if (
+            tecnico_actual
+            and tecnico_actual != "Sin asignar"
+            and tecnico_actual in self.tecnicos
+        ):
+            self.combo_tecnico.set(
+                tecnico_actual
+            )
+
+        elif self.tecnicos:
+            self.combo_tecnico.set(
+                lista_tecnicos[0]
+            )
+
+        self.boton_asignar = ctk.CTkButton(
+            panel,
+            text="Asignar técnico",
+            height=40,
+            width=170,
+            command=self.asignar_tecnico
+        )
+
+        self.boton_asignar.grid(
+            row=1,
+            column=1,
+            padx=(10, 20),
+            pady=(5, 20)
+        )
+
+    def asignar_tecnico(self):
+
+        tecnico_seleccionado = (
+            self.combo_tecnico.get()
+        )
+
+        if (
+            tecnico_seleccionado
+            not in self.tecnicos
+        ):
+            messagebox.showwarning(
+                "Técnico",
+                "Seleccione un técnico válido."
+            )
+            return
+
+        id_tecnico = self.tecnicos[
+            tecnico_seleccionado
+        ]
+
+        confirmar = messagebox.askyesno(
+            "Asignar técnico",
+            f"¿Desea asignar este ticket a "
+            f"{tecnico_seleccionado}?"
+        )
+
+        if not confirmar:
+            return
+
+        self.boton_asignar.configure(
+            state="disabled",
+            text="Asignando..."
+        )
+
+        try:
+            exito, mensaje = (
+                TicketController.asignar_tecnico(
+                    id_ticket=self.ticket["id_ticket"],
+                    id_tecnico=id_tecnico,
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+            if exito:
+                messagebox.showinfo(
+                    "Correcto",
+                    mensaje
+                )
+
+                # Regresar a la lista para refrescar datos
+                self.regresar_callback()
+
+            else:
+                messagebox.showerror(
+                    "Error",
+                    mensaje
+                )
+
+        finally:
+            self.boton_asignar.configure(
+                state="normal",
+                text="Asignar técnico"
+            )
