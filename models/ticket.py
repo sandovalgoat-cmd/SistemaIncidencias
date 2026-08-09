@@ -539,3 +539,346 @@ class Ticket:
                 and conexion.is_connected()
             ):
                 conexion.close()
+
+    @staticmethod
+    def cambiar_estado(
+        id_ticket,
+        nuevo_estado,
+        id_usuario_accion
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            # ============================================
+            # BUSCAR EL ESTADO
+            # ============================================
+
+            sql_estado = """
+                SELECT id_estado
+                FROM estados
+                WHERE nombre = %s
+                LIMIT 1
+            """
+
+            cursor.execute(
+                sql_estado,
+                (nuevo_estado,)
+            )
+
+            estado = cursor.fetchone()
+
+            if estado is None:
+                raise ValueError(
+                    f"No existe el estado '{nuevo_estado}'."
+                )
+
+            id_estado = estado["id_estado"]
+
+            # ============================================
+            # ACTUALIZAR EL TICKET
+            # ============================================
+
+            if nuevo_estado == "Solucionado":
+
+                sql_ticket = """
+                    UPDATE tickets
+                    SET
+                        id_estado = %s,
+                        fecha_solucion = NOW()
+                    WHERE id_ticket = %s
+                """
+
+            else:
+
+                sql_ticket = """
+                    UPDATE tickets
+                    SET id_estado = %s
+                    WHERE id_ticket = %s
+                """
+
+            cursor.execute(
+                sql_ticket,
+                (
+                    id_estado,
+                    id_ticket
+                )
+            )
+
+            if cursor.rowcount == 0:
+                raise ValueError(
+                    "No se encontró el ticket."
+                )
+
+            # ============================================
+            # REGISTRAR HISTORIAL
+            # ============================================
+
+            accion = (
+                f"Estado cambiado a '{nuevo_estado}'"
+            )
+
+            sql_historial = """
+                INSERT INTO historial (
+                    id_ticket,
+                    id_usuario,
+                    accion,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            cursor.execute(
+                sql_historial,
+                (
+                    id_ticket,
+                    id_usuario_accion,
+                    accion
+                )
+            )
+
+            conexion.commit()
+
+            return True
+
+        except Exception:
+            if conexion is not None:
+                conexion.rollback()
+
+            raise
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def agregar_comentario(
+        id_ticket,
+        id_usuario,
+        comentario,
+        publico
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor()
+
+            sql = """
+                INSERT INTO comentarios (
+                    id_ticket,
+                    id_usuario,
+                    comentario,
+                    publico,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            cursor.execute(
+                sql,
+                (
+                    id_ticket,
+                    id_usuario,
+                    comentario,
+                    publico
+                )
+            )
+
+            sql_historial = """
+                INSERT INTO historial (
+                    id_ticket,
+                    id_usuario,
+                    accion,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            accion = (
+                "Comentario público agregado"
+                if publico
+                else "Nota interna agregada"
+            )
+
+            cursor.execute(
+                sql_historial,
+                (
+                    id_ticket,
+                    id_usuario,
+                    accion
+                )
+            )
+
+            conexion.commit()
+
+            return True
+
+        except Exception:
+            if conexion is not None:
+                conexion.rollback()
+
+            raise
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+
+    @staticmethod
+    def listar_comentarios(
+        id_ticket,
+        incluir_privados=False
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    c.id_comentario,
+                    c.comentario,
+                    c.publico,
+                    c.fecha,
+
+                    u.id_usuario,
+                    CONCAT(
+                        u.nombre,
+                        ' ',
+                        u.apellido
+                    ) AS usuario,
+
+                    r.nombre AS rol
+
+                FROM comentarios AS c
+
+                INNER JOIN usuarios AS u
+                    ON c.id_usuario = u.id_usuario
+
+                INNER JOIN roles AS r
+                    ON u.id_rol = r.id_rol
+
+                WHERE c.id_ticket = %s
+            """
+
+            parametros = [id_ticket]
+
+            if not incluir_privados:
+                sql += """
+                    AND c.publico = 1
+                """
+
+            sql += """
+                ORDER BY
+                    c.fecha ASC,
+                    c.id_comentario ASC
+            """
+
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def listar_historial(id_ticket):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    h.id_historial,
+                    h.accion,
+                    h.fecha,
+
+                    h.id_usuario,
+
+                    CONCAT(
+                        u.nombre,
+                        ' ',
+                        u.apellido
+                    ) AS usuario,
+
+                    r.nombre AS rol
+
+                FROM historial AS h
+
+                INNER JOIN usuarios AS u
+                    ON h.id_usuario = u.id_usuario
+
+                INNER JOIN roles AS r
+                    ON u.id_rol = r.id_rol
+
+                WHERE h.id_ticket = %s
+
+                ORDER BY
+                    h.fecha ASC,
+                    h.id_historial ASC
+            """
+
+            cursor.execute(
+                sql,
+                (id_ticket,)
+            )
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()        

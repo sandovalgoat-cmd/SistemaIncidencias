@@ -1,6 +1,3 @@
-from doctest import master
-
-import customtkinter as ctk
 import customtkinter as ctk
 from tkinter import messagebox
 
@@ -328,6 +325,38 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 fila=12
             )
 
+        # ==============================================
+        # CAMBIO DE ESTADO
+        # ==============================================
+
+        if self.usuario_sesion["rol"] in (
+            "Tecnico",
+            "Administrador",
+            "EncargadoTI"
+        ):
+            self.crear_panel_estado(
+                contenedor,
+                fila=13
+            )
+
+
+        # ==============================================
+        # COMENTARIOS
+        # TODOS LOS ROLES PUEDEN VERLOS
+        # ==============================================
+
+        self.crear_panel_comentarios(
+            contenedor,
+            fila=14
+        )
+        # ==============================================
+        # HISTORIAL
+        # ==============================================
+
+        self.crear_panel_historial(
+            contenedor,
+            fila=15
+        )
 
     def crear_etiqueta(
         self,
@@ -579,4 +608,734 @@ class VistaDetalleTicket(ctk.CTkFrame):
             self.boton_asignar.configure(
                 state="normal",
                 text="Asignar técnico"
+            )
+
+    def crear_panel_estado(
+        self,
+        master,
+        fila
+    ):
+
+        panel = ctk.CTkFrame(
+            master,
+            fg_color="#ECFDF5",
+            corner_radius=10
+        )
+
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 30)
+        )
+
+        panel.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        panel.grid_columnconfigure(
+            1,
+            weight=0
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text="Cambiar estado del ticket",
+            font=("Arial", 17, "bold"),
+            text_color="#1F2937"
+        ).grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="w",
+            padx=20,
+            pady=(20, 10)
+        )
+
+        estados = [
+            "Asignado",
+            "En Proceso",
+            "En Espera",
+            "Solucionado"
+        ]
+
+        self.combo_estado_ticket = ctk.CTkComboBox(
+            panel,
+            values=estados,
+            state="readonly",
+            height=42
+        )
+
+        self.combo_estado_ticket.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=(20, 10),
+            pady=(5, 20)
+        )
+
+        estado_actual = self.ticket["estado"]
+
+        if estado_actual in estados:
+            self.combo_estado_ticket.set(
+                estado_actual
+            )
+
+        else:
+            self.combo_estado_ticket.set(
+                estados[0]
+            )
+
+        self.boton_estado = ctk.CTkButton(
+            panel,
+            text="Actualizar estado",
+            width=180,
+            height=42,
+            fg_color="#059669",
+            hover_color="#047857",
+            command=self.actualizar_estado
+        )
+
+        self.boton_estado.grid(
+            row=1,
+            column=1,
+            padx=(10, 20),
+            pady=(5, 20)
+        )
+
+    def actualizar_estado(self):
+
+        nuevo_estado = (
+            self.combo_estado_ticket.get()
+        )
+
+        estado_actual = self.ticket["estado"]
+
+        if nuevo_estado == estado_actual:
+            messagebox.showinfo(
+                "Estado",
+                "El ticket ya tiene ese estado."
+            )
+            return
+
+        confirmar = messagebox.askyesno(
+            "Cambiar estado",
+            f"¿Desea cambiar el estado de "
+            f"'{estado_actual}' a '{nuevo_estado}'?"
+        )
+
+        if not confirmar:
+            return
+
+        self.boton_estado.configure(
+            state="disabled",
+            text="Actualizando..."
+        )
+
+        try:
+
+            exito, mensaje = (
+                TicketController.cambiar_estado(
+                    id_ticket=self.ticket["id_ticket"],
+                    nuevo_estado=nuevo_estado,
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+            if exito:
+
+                messagebox.showinfo(
+                    "Correcto",
+                    mensaje
+                )
+
+                # Regresa a la lista para recargar
+                self.regresar_callback()
+
+            else:
+
+                messagebox.showerror(
+                    "Error",
+                    mensaje
+                )
+
+        finally:
+
+            self.boton_estado.configure(
+                state="normal",
+                text="Actualizar estado"
+            )
+
+    def crear_panel_comentarios(
+        self,
+        master,
+        fila
+    ):
+        panel = ctk.CTkFrame(
+            master,
+            fg_color="#F8FAFC",
+            corner_radius=10
+        )
+
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 30)
+        )
+
+        panel.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text="Comentarios y seguimiento",
+            font=("Arial", 18, "bold"),
+            text_color="#1F2937"
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(20, 10)
+        )
+
+        # ==============================================
+        # CONTENEDOR DE COMENTARIOS
+        # ==============================================
+
+        self.frame_comentarios = ctk.CTkFrame(
+            panel,
+            fg_color="transparent"
+        )
+
+        self.frame_comentarios.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(5, 15)
+        )
+
+        self.frame_comentarios.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        self.cargar_comentarios()
+
+        # ==============================================
+        # NUEVO COMENTARIO
+        # ==============================================
+
+        ctk.CTkLabel(
+            panel,
+            text="Agregar comentario",
+            font=("Arial", 14, "bold"),
+            text_color="#374151"
+        ).grid(
+            row=2,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(5, 5)
+        )
+
+        self.texto_comentario = ctk.CTkTextbox(
+            panel,
+            height=100,
+            wrap="word"
+        )
+
+        self.texto_comentario.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 10)
+        )
+
+        # ==============================================
+        # TIPO DE COMENTARIO
+        # ==============================================
+
+        acciones = ctk.CTkFrame(
+            panel,
+            fg_color="transparent"
+        )
+
+        acciones.grid(
+            row=4,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 20)
+        )
+
+        rol = self.usuario_sesion["rol"]
+
+        if rol in (
+            "Administrador",
+            "EncargadoTI",
+            "Tecnico"
+        ):
+            self.tipo_comentario = ctk.StringVar(
+                value="Público"
+            )
+
+            self.combo_tipo_comentario = ctk.CTkComboBox(
+                acciones,
+                width=180,
+                height=40,
+                values=[
+                    "Público",
+                    "Nota interna"
+                ],
+                state="readonly",
+                variable=self.tipo_comentario
+            )
+
+            self.combo_tipo_comentario.pack(
+                side="left"
+            )
+
+        else:
+            self.tipo_comentario = ctk.StringVar(
+                value="Público"
+            )
+
+        self.boton_comentario = ctk.CTkButton(
+            acciones,
+            text="Agregar comentario",
+            width=180,
+            height=40,
+            command=self.guardar_comentario
+        )
+
+        self.boton_comentario.pack(
+            side="right"
+        )
+
+    def cargar_comentarios(self):
+
+        for widget in self.frame_comentarios.winfo_children():
+            widget.destroy()
+
+        exito, resultado = TicketController.listar_comentarios(
+            id_ticket=self.ticket["id_ticket"],
+            usuario_sesion=self.usuario_sesion
+        )
+
+        if not exito:
+            ctk.CTkLabel(
+                self.frame_comentarios,
+                text=resultado,
+                text_color="#C62828"
+            ).grid(
+                row=0,
+                column=0,
+                sticky="w",
+                pady=10
+            )
+
+            return
+
+        if not resultado:
+            ctk.CTkLabel(
+                self.frame_comentarios,
+                text="Todavía no hay comentarios.",
+                text_color="#6B7280"
+            ).grid(
+                row=0,
+                column=0,
+                sticky="w",
+                pady=10
+            )
+
+            return
+
+        for indice, comentario in enumerate(resultado):
+
+            privado = not bool(
+                comentario["publico"]
+            )
+
+            texto_tipo = (
+                "NOTA INTERNA"
+                if privado
+                else "PÚBLICO"
+            )
+
+            fecha = comentario["fecha"]
+
+            fecha_texto = (
+                fecha.strftime("%d/%m/%Y %H:%M")
+                if fecha
+                else ""
+            )
+
+            tarjeta = ctk.CTkFrame(
+                self.frame_comentarios,
+                fg_color=(
+                    "#FFF7ED"
+                    if privado
+                    else "#EFF6FF"
+                ),
+                corner_radius=8
+            )
+
+            tarjeta.grid(
+                row=indice,
+                column=0,
+                sticky="ew",
+                pady=5
+            )
+
+            tarjeta.grid_columnconfigure(
+                0,
+                weight=1
+            )
+
+            encabezado = (
+                f"{comentario['usuario']} "
+                f"({comentario['rol']})"
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=encabezado,
+                font=("Arial", 13, "bold"),
+                anchor="w"
+            ).grid(
+                row=0,
+                column=0,
+                sticky="ew",
+                padx=15,
+                pady=(12, 2)
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=f"{texto_tipo} • {fecha_texto}",
+                font=("Arial", 11),
+                text_color="#6B7280",
+                anchor="w"
+            ).grid(
+                row=1,
+                column=0,
+                sticky="ew",
+                padx=15
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=comentario["comentario"],
+                font=("Arial", 13),
+                anchor="w",
+                justify="left",
+                wraplength=850
+            ).grid(
+                row=2,
+                column=0,
+                sticky="ew",
+                padx=15,
+                pady=(8, 12)
+            )  
+
+    def guardar_comentario(self):
+
+        comentario = self.texto_comentario.get(
+            "1.0",
+            "end"
+        ).strip()
+
+        tipo = self.tipo_comentario.get()
+
+        publico = tipo == "Público"
+
+        self.boton_comentario.configure(
+            state="disabled",
+            text="Guardando..."
+        )
+
+        try:
+            exito, mensaje = TicketController.agregar_comentario(
+                id_ticket=self.ticket["id_ticket"],
+                comentario=comentario,
+                publico=publico,
+                usuario_sesion=self.usuario_sesion
+            )
+
+            if exito:
+                self.texto_comentario.delete(
+                    "1.0",
+                    "end"
+                )
+
+                self.cargar_comentarios()
+
+                messagebox.showinfo(
+                    "Correcto",
+                    mensaje
+                )
+
+            else:
+                messagebox.showwarning(
+                    "Comentario",
+                    mensaje
+                )
+
+        finally:
+            self.boton_comentario.configure(
+                state="normal",
+                text="Agregar comentario"
+            )
+
+    def crear_panel_historial(
+            self,
+            master,
+            fila
+        ):
+
+        panel = ctk.CTkFrame(
+            master,
+            fg_color="#F9FAFB",
+            corner_radius=10
+        )
+
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 30)
+        )
+
+        panel.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        # ==============================================
+        # TÍTULO
+        # ==============================================
+
+        ctk.CTkLabel(
+            panel,
+            text="Historial del ticket",
+            font=("Arial", 18, "bold"),
+            text_color="#1F2937"
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(20, 5)
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text=(
+                "Registro cronológico de las actividades "
+                "realizadas sobre la incidencia."
+            ),
+            font=("Arial", 12),
+            text_color="#6B7280"
+        ).grid(
+            row=1,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(0, 15)
+        )
+
+        # ==============================================
+        # CONTENEDOR DEL HISTORIAL
+        # ==============================================
+
+        self.frame_historial = ctk.CTkFrame(
+            panel,
+            fg_color="transparent"
+        )
+
+        self.frame_historial.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 20)
+        )
+
+        self.frame_historial.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        self.cargar_historial()
+
+
+    def cargar_historial(self):
+
+        # Eliminar elementos anteriores
+        for widget in self.frame_historial.winfo_children():
+            widget.destroy()
+
+        exito, resultado = (
+            TicketController.listar_historial(
+                id_ticket=self.ticket["id_ticket"]
+            )
+        )
+
+        if not exito:
+
+            ctk.CTkLabel(
+                self.frame_historial,
+                text=resultado,
+                text_color="#C62828"
+            ).grid(
+                row=0,
+                column=0,
+                sticky="w",
+                pady=10
+            )
+
+            return
+
+        # ==============================================
+        # SIN HISTORIAL
+        # ==============================================
+
+        if not resultado:
+
+            ctk.CTkLabel(
+                self.frame_historial,
+                text="No existen movimientos registrados.",
+                text_color="#6B7280"
+            ).grid(
+                row=0,
+                column=0,
+                sticky="w",
+                pady=10
+            )
+
+            return
+
+        # ==============================================
+        # MOSTRAR MOVIMIENTOS
+        # ==============================================
+
+        for indice, movimiento in enumerate(resultado):
+
+            fecha = movimiento["fecha"]
+
+            fecha_texto = (
+                fecha.strftime("%d/%m/%Y %H:%M")
+                if fecha
+                else "Sin fecha"
+            )
+
+            tarjeta = ctk.CTkFrame(
+                self.frame_historial,
+                fg_color="white",
+                corner_radius=8,
+                border_width=1,
+                border_color="#E5E7EB"
+            )
+
+            tarjeta.grid(
+                row=indice,
+                column=0,
+                sticky="ew",
+                pady=5
+            )
+
+            tarjeta.grid_columnconfigure(
+                1,
+                weight=1
+            )
+
+            # ==========================================
+            # INDICADOR
+            # ==========================================
+
+            indicador = ctk.CTkLabel(
+                tarjeta,
+                text="●",
+                width=30,
+                font=("Arial", 18),
+                text_color="#1565C0"
+            )
+
+            indicador.grid(
+                row=0,
+                column=0,
+                rowspan=3,
+                padx=(12, 5),
+                pady=10
+            )
+
+            # ==========================================
+            # ACCIÓN
+            # ==========================================
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=movimiento["accion"],
+                font=("Arial", 13, "bold"),
+                text_color="#1F2937",
+                anchor="w"
+            ).grid(
+                row=0,
+                column=1,
+                sticky="ew",
+                padx=(5, 15),
+                pady=(10, 2)
+            )
+
+            # ==========================================
+            # USUARIO
+            # ==========================================
+
+            usuario_texto = (
+                f"{movimiento['usuario']} "
+                f"({movimiento['rol']})"
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=usuario_texto,
+                font=("Arial", 12),
+                text_color="#4B5563",
+                anchor="w"
+            ).grid(
+                row=1,
+                column=1,
+                sticky="ew",
+                padx=(5, 15)
+            )
+
+            # ==========================================
+            # FECHA
+            # ==========================================
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=fecha_texto,
+                font=("Arial", 11),
+                text_color="#9CA3AF",
+                anchor="w"
+            ).grid(
+                row=2,
+                column=1,
+                sticky="ew",
+                padx=(5, 15),
+                pady=(2, 10)
             )

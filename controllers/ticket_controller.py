@@ -176,3 +176,176 @@ class TicketController:
                 f"No fue posible asignar el técnico: {error}"
             )    
 
+    @staticmethod
+    def cambiar_estado(
+        id_ticket,
+        nuevo_estado,
+        usuario_sesion
+    ):
+
+        # Solo técnicos, EncargadoTI y Administrador
+        if usuario_sesion["rol"] not in (
+            "Tecnico",
+            "EncargadoTI",
+            "Administrador"
+        ):
+            return (
+                False,
+                "No tiene permisos para cambiar el estado."
+            )
+
+        estados_permitidos = (
+            "Asignado",
+            "En Proceso",
+            "En Espera",
+            "Solucionado"
+        )
+
+        if nuevo_estado not in estados_permitidos:
+            return (
+                False,
+                "El estado seleccionado no es válido."
+            )
+
+        try:
+            Ticket.cambiar_estado(
+                id_ticket=id_ticket,
+                nuevo_estado=nuevo_estado,
+                id_usuario_accion=usuario_sesion["id_usuario"]
+            )
+
+            return (
+                True,
+                f"Estado actualizado a '{nuevo_estado}'."
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible cambiar el estado: {error}"
+            )
+
+    @staticmethod
+    def agregar_comentario(
+        id_ticket,
+        comentario,
+        publico,
+        usuario_sesion
+    ):
+        comentario = comentario.strip()
+
+        if not comentario:
+            return (
+                False,
+                "Escriba un comentario."
+            )
+
+        if len(comentario) < 3:
+            return (
+                False,
+                "El comentario es demasiado corto."
+            )
+
+        rol = usuario_sesion["rol"]
+
+        # Un empleado no puede crear notas privadas
+        if not publico and rol == "Empleado":
+            return (
+                False,
+                "No tiene permisos para crear notas internas."
+            )
+
+        try:
+            Ticket.agregar_comentario(
+                id_ticket=id_ticket,
+                id_usuario=usuario_sesion["id_usuario"],
+                comentario=comentario,
+                publico=publico
+            )
+
+            return (
+                True,
+                "Comentario guardado correctamente."
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible guardar el comentario: {error}"
+            )
+
+    @staticmethod
+    def listar_comentarios(
+        id_ticket,
+        usuario_sesion
+    ):
+        try:
+            incluir_privados = (
+                usuario_sesion["rol"]
+                in (
+                    "Administrador",
+                    "EncargadoTI",
+                    "Tecnico"
+                )
+            )
+
+            comentarios = Ticket.listar_comentarios(
+                id_ticket=id_ticket,
+                incluir_privados=incluir_privados
+            )
+
+            return (
+                True,
+                comentarios
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error al consultar comentarios: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible consultar comentarios: {error}"
+            )
+
+    @staticmethod
+    def listar_historial(id_ticket):
+        try:
+
+            historial = Ticket.listar_historial(
+                id_ticket=id_ticket
+            )
+
+            return (
+                True,
+                historial
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error al consultar el historial: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible consultar el historial: {error}"
+            )    
+
+            
