@@ -881,4 +881,208 @@ class Ticket:
                 conexion is not None
                 and conexion.is_connected()
             ):
-                conexion.close()        
+                conexion.close()
+
+    @staticmethod
+    def confirmar_solucion(
+        id_ticket,
+        id_usuario,
+        confirmado
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            # ==========================================
+            # CONSULTAR TICKET
+            # ==========================================
+
+            sql_ticket = """
+                SELECT
+                    t.id_ticket,
+                    t.id_usuario,
+                    e.nombre AS estado
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                WHERE t.id_ticket = %s
+                LIMIT 1
+            """
+
+            cursor.execute(
+                sql_ticket,
+                (id_ticket,)
+            )
+
+            ticket = cursor.fetchone()
+
+            if ticket is None:
+                raise ValueError(
+                    "El ticket no existe."
+                )
+
+            # ==========================================
+            # VERIFICAR PROPIETARIO
+            # ==========================================
+
+            if ticket["id_usuario"] != id_usuario:
+                raise ValueError(
+                    "No puede confirmar un ticket "
+                    "que no le pertenece."
+                )
+
+            # ==========================================
+            # VERIFICAR ESTADO
+            # ==========================================
+
+            if ticket["estado"] != "Solucionado":
+                raise ValueError(
+                    "El ticket todavía no está marcado "
+                    "como solucionado."
+                )
+
+            # ==========================================
+            # EMPLEADO CONFIRMA LA SOLUCIÓN
+            # ==========================================
+
+            if confirmado:
+
+                sql_estado = """
+                    SELECT id_estado
+                    FROM estados
+                    WHERE nombre = 'Cerrado'
+                    LIMIT 1
+                """
+
+                cursor.execute(sql_estado)
+
+                estado = cursor.fetchone()
+
+                if estado is None:
+                    raise ValueError(
+                        "No existe el estado 'Cerrado'."
+                    )
+
+                sql_actualizar = """
+                    UPDATE tickets
+                    SET
+                        confirmado = 1,
+                        id_estado = %s,
+                        fecha_cierre = NOW()
+                    WHERE id_ticket = %s
+                """
+
+                cursor.execute(
+                    sql_actualizar,
+                    (
+                        estado["id_estado"],
+                        id_ticket
+                    )
+                )
+
+                accion = (
+                    "El empleado confirmó la solución "
+                    "y el ticket fue cerrado"
+                )
+
+            # ==========================================
+            # EMPLEADO RECHAZA LA SOLUCIÓN
+            # ==========================================
+
+            else:
+
+                sql_estado = """
+                    SELECT id_estado
+                    FROM estados
+                    WHERE nombre = 'En Proceso'
+                    LIMIT 1
+                """
+
+                cursor.execute(sql_estado)
+
+                estado = cursor.fetchone()
+
+                if estado is None:
+                    raise ValueError(
+                        "No existe el estado 'En Proceso'."
+                    )
+
+                sql_actualizar = """
+                    UPDATE tickets
+                    SET
+                        confirmado = 0,
+                        id_estado = %s,
+                        fecha_solucion = NULL,
+                        fecha_cierre = NULL
+                    WHERE id_ticket = %s
+                """
+
+                cursor.execute(
+                    sql_actualizar,
+                    (
+                        estado["id_estado"],
+                        id_ticket
+                    )
+                )
+
+                accion = (
+                    "El empleado rechazó la solución. "
+                    "El ticket regresó a 'En Proceso'"
+                )
+
+            # ==========================================
+            # REGISTRAR HISTORIAL
+            # ==========================================
+
+            sql_historial = """
+                INSERT INTO historial (
+                    id_ticket,
+                    id_usuario,
+                    accion,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            cursor.execute(
+                sql_historial,
+                (
+                    id_ticket,
+                    id_usuario,
+                    accion
+                )
+            )
+
+            conexion.commit()
+
+            return True
+
+        except Exception:
+
+            if conexion is not None:
+                conexion.rollback()
+
+            raise
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()            
+
+    

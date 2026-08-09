@@ -346,6 +346,52 @@ class TicketController:
             return (
                 False,
                 f"No fue posible consultar el historial: {error}"
-            )    
+            )   
 
-            
+    @staticmethod
+    def confirmar_solucion(
+            id_ticket,
+            confirmado,
+            usuario_sesion
+        ):
+
+            # Solo el empleado puede confirmar
+            if usuario_sesion["rol"] != "Empleado":
+                return (
+                    False,
+                    "Solo el empleado que reportó el problema "
+                    "puede confirmar la solución."
+                )
+
+            try:
+                Ticket.confirmar_solucion(
+                    id_ticket=id_ticket,
+                    id_usuario=usuario_sesion["id_usuario"],
+                    confirmado=confirmado
+                )
+
+                if confirmado:
+                    return (
+                        True,
+                        "La solución fue confirmada.\n\n"
+                        "El ticket ha sido cerrado."
+                    )
+
+                return (
+                    True,
+                    "Se indicó que el problema continúa.\n\n"
+                    "El ticket regresó a En Proceso."
+                )
+
+            except mysql.connector.Error as error:
+                return (
+                    False,
+                    f"Error de base de datos: {error}"
+                )
+
+            except Exception as error:
+                return (
+                    False,
+                    f"No fue posible confirmar la solución: {error}"
+                )    
+        

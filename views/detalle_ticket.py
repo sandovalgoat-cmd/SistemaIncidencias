@@ -349,15 +349,27 @@ class VistaDetalleTicket(ctk.CTkFrame):
             contenedor,
             fila=14
         )
-        # ==============================================
-        # HISTORIAL
-        # ==============================================
+
+        if (
+    self.usuario_sesion["rol"] == "Empleado"
+    and self.ticket["estado"] == "Solucionado"
+):
+            self.crear_panel_confirmacion(
+                contenedor,
+                fila=15
+            )
+
+            fila_historial = 16
+
+        else:
+            fila_historial = 15
+
 
         self.crear_panel_historial(
             contenedor,
-            fila=15
+            fila=fila_historial
         )
-
+        
     def crear_etiqueta(
         self,
         master,
@@ -1181,7 +1193,6 @@ class VistaDetalleTicket(ctk.CTkFrame):
 
         self.cargar_historial()
 
-
     def cargar_historial(self):
 
         # Eliminar elementos anteriores
@@ -1339,3 +1350,287 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 padx=(5, 15),
                 pady=(2, 10)
             )
+
+    def crear_panel_confirmacion(
+        self,
+        master,
+        fila
+    ):
+        panel = ctk.CTkFrame(
+            master,
+            fg_color="#FEFCE8",
+            corner_radius=10,
+            border_width=1,
+            border_color="#FACC15"
+        )
+
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 30)
+        )
+
+        panel.grid_columnconfigure(0, weight=1)
+
+        # ==========================================
+        # TÍTULO
+        # ==========================================
+
+        ctk.CTkLabel(
+            panel,
+            text="Confirmación de solución",
+            font=("Arial", 18, "bold"),
+            text_color="#854D0E"
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(20, 5)
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text=(
+                "El técnico indicó que el problema "
+                "ya fue solucionado."
+            ),
+            font=("Arial", 14),
+            text_color="#713F12"
+        ).grid(
+            row=1,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(5, 2)
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text="¿El problema quedó resuelto correctamente?",
+            font=("Arial", 14, "bold"),
+            text_color="#713F12"
+        ).grid(
+            row=2,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(5, 15)
+        )
+
+        # ==========================================
+        # CONTENEDOR DE BOTONES
+        # ==========================================
+
+        botones = ctk.CTkFrame(
+            panel,
+            fg_color="transparent"
+        )
+
+        botones.grid(
+            row=3,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(0, 20)
+        )
+
+        # ==========================================
+        # BOTÓN CONFIRMAR
+        # ==========================================
+
+        self.boton_confirmar = ctk.CTkButton(
+            botones,
+            text="Sí, quedó solucionado",
+            width=220,
+            height=42,
+            fg_color="#16A34A",
+            hover_color="#15803D",
+            command=self.confirmar_solucion
+        )
+
+        self.boton_confirmar.grid(
+            row=0,
+            column=0,
+            padx=(0, 10)
+        )
+
+        # ==========================================
+        # BOTÓN RECHAZAR
+        # ==========================================
+
+        self.boton_rechazar = ctk.CTkButton(
+            botones,
+            text="No, el problema continúa",
+            width=220,
+            height=42,
+            fg_color="#DC2626",
+            hover_color="#B91C1C",
+            command=self.rechazar_solucion
+        )
+
+        self.boton_rechazar.grid(
+            row=0,
+            column=1,
+            padx=(10, 0)
+        )
+
+    def confirmar_solucion(self):
+
+        confirmar = messagebox.askyesno(
+            "Confirmar solución",
+            (
+                "¿Confirma que el problema quedó "
+                "solucionado correctamente?\n\n"
+                "Al continuar, el ticket será cerrado."
+            )
+        )
+
+        if not confirmar:
+            return
+
+        self.boton_confirmar.configure(
+            state="disabled",
+            text="Confirmando..."
+        )
+
+        self.boton_rechazar.configure(
+            state="disabled"
+        )
+
+        try:
+
+            exito, mensaje = (
+                TicketController.confirmar_solucion(
+                    id_ticket=self.ticket["id_ticket"],
+                    confirmado=True,
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+            if exito:
+
+                messagebox.showinfo(
+                    "Ticket cerrado",
+                    mensaje
+                )
+
+                self.regresar_callback()
+                return
+
+            else:
+
+                messagebox.showerror(
+                    "Error",
+                    mensaje
+                )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                f"Ocurrió un error al confirmar la solución.\n\n{error}"
+            )
+
+        finally:
+
+            try:
+                if self.boton_confirmar.winfo_exists():
+
+                    self.boton_confirmar.configure(
+                        state="normal",
+                        text="Sí, quedó solucionado"
+                    )
+
+                if self.boton_rechazar.winfo_exists():
+
+                    self.boton_rechazar.configure(
+                        state="normal"
+                    )
+
+            except Exception:
+                pass
+
+    def rechazar_solucion(self):    
+
+        confirmar = messagebox.askyesno(
+            "Problema no solucionado",
+            (
+                "¿Confirma que el problema continúa?\n\n"
+                "El ticket regresará al estado "
+                "'En Proceso' para que el técnico "
+                "continúe trabajando."
+            )
+        )
+
+        if not confirmar:
+            return
+
+        self.boton_confirmar.configure(
+            state="disabled"
+        )
+
+        self.boton_rechazar.configure(
+            state="disabled",
+            text="Procesando..."
+        )
+
+        try:
+
+            exito, mensaje = (
+                TicketController.confirmar_solucion(
+                    id_ticket=self.ticket["id_ticket"],
+                    confirmado=False,
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+            if exito:
+
+                messagebox.showinfo(
+                    "Ticket reabierto",
+                    mensaje
+                )
+
+                self.regresar_callback()
+                return
+
+            else:
+
+                messagebox.showerror(
+                    "Error",
+                    mensaje
+                )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "Ocurrió un error al rechazar "
+                    f"la solución.\n\n{error}"
+                )
+            )
+
+        finally:
+
+            try:
+
+                if self.boton_confirmar.winfo_exists():
+
+                    self.boton_confirmar.configure(
+                        state="normal"
+                    )
+
+                if self.boton_rechazar.winfo_exists():
+
+                    self.boton_rechazar.configure(
+                        state="normal",
+                        text="No, el problema continúa"
+                    )
+
+            except Exception:
+                pass            
