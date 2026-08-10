@@ -1085,4 +1085,383 @@ class Ticket:
             ):
                 conexion.close()            
 
-    
+    @staticmethod
+    def obtener_reporte_general():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    COUNT(*) AS total,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Nuevo'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS nuevos,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'En Proceso'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS en_proceso,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Solucionado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS solucionados,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Cerrado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS cerrados,
+
+                    SUM(
+                        CASE
+                            WHEN p.nombre = 'Urgente'
+                            AND e.nombre <> 'Cerrado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS urgentes,
+
+                    SUM(
+                        CASE
+                            WHEN t.id_tecnico IS NULL
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS sin_asignar
+
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                INNER JOIN prioridades AS p
+                    ON t.id_prioridad = p.id_prioridad
+            """
+
+            cursor.execute(sql)
+            resultado = cursor.fetchone()
+
+            return {
+                "total": resultado["total"] or 0,
+                "nuevos": resultado["nuevos"] or 0,
+                "en_proceso": resultado["en_proceso"] or 0,
+                "solucionados": resultado["solucionados"] or 0,
+                "cerrados": resultado["cerrados"] or 0,
+                "urgentes": resultado["urgentes"] or 0,
+                "sin_asignar": resultado["sin_asignar"] or 0
+            }
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def reporte_por_estado():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    e.nombre AS nombre,
+                    COUNT(t.id_ticket) AS cantidad
+                FROM estados AS e
+
+                LEFT JOIN tickets AS t
+                    ON e.id_estado = t.id_estado
+
+                GROUP BY
+                    e.id_estado,
+                    e.nombre
+
+                ORDER BY cantidad DESC
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+
+    @staticmethod
+    def reporte_por_prioridad():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    p.nombre AS nombre,
+                    COUNT(t.id_ticket) AS cantidad
+                FROM prioridades AS p
+
+                LEFT JOIN tickets AS t
+                    ON p.id_prioridad = t.id_prioridad
+
+                GROUP BY
+                    p.id_prioridad,
+                    p.nombre
+
+                ORDER BY cantidad DESC
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+
+    @staticmethod
+    def reporte_por_categoria():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    c.nombre AS nombre,
+                    COUNT(t.id_ticket) AS cantidad
+                FROM categorias AS c
+
+                LEFT JOIN tickets AS t
+                    ON c.id_categoria = t.id_categoria
+
+                GROUP BY
+                    c.id_categoria,
+                    c.nombre
+
+                ORDER BY cantidad DESC
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+
+    @staticmethod
+    def reporte_por_tecnico():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    CONCAT(
+                        u.nombre,
+                        ' ',
+                        u.apellido
+                    ) AS nombre,
+
+                    COUNT(t.id_ticket) AS cantidad
+
+                FROM usuarios AS u
+
+                INNER JOIN roles AS r
+                    ON u.id_rol = r.id_rol
+
+                LEFT JOIN tickets AS t
+                    ON u.id_usuario = t.id_tecnico
+
+                WHERE r.nombre = 'Tecnico'
+
+                GROUP BY
+                    u.id_usuario,
+                    u.nombre,
+                    u.apellido
+
+                ORDER BY cantidad DESC
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def obtener_metricas_tiempo(
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            condiciones = []
+            parametros = []
+
+            if fecha_inicio:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) >= %s"
+                )
+                parametros.append(fecha_inicio)
+
+            if fecha_fin:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) <= %s"
+                )
+                parametros.append(fecha_fin)
+
+            where_sql = ""
+
+            if condiciones:
+                where_sql = (
+                    "WHERE "
+                    + " AND ".join(condiciones)
+                )
+
+            sql = f"""
+                SELECT
+
+                    COUNT(*) AS total_periodo,
+
+                    AVG(
+                        CASE
+                            WHEN t.fecha_solucion IS NOT NULL
+                            THEN TIMESTAMPDIFF(
+                                MINUTE,
+                                t.fecha_creacion,
+                                t.fecha_solucion
+                            )
+                            ELSE NULL
+                        END
+                    ) AS promedio_minutos_solucion,
+
+                    AVG(
+                        CASE
+                            WHEN t.fecha_cierre IS NOT NULL
+                            THEN TIMESTAMPDIFF(
+                                MINUTE,
+                                t.fecha_creacion,
+                                t.fecha_cierre
+                            )
+                            ELSE NULL
+                        END
+                    ) AS promedio_minutos_cierre,
+
+                    AVG(
+                        CASE
+                            WHEN
+                                t.fecha_solucion IS NOT NULL
+                                AND t.fecha_cierre IS NOT NULL
+                            THEN TIMESTAMPDIFF(
+                                MINUTE,
+                                t.fecha_solucion,
+                                t.fecha_cierre
+                            )
+                            ELSE NULL
+                        END
+                    ) AS promedio_confirmacion
+
+                FROM tickets AS t
+
+                {where_sql}
+            """
+
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
+
+            resultado = cursor.fetchone()
+
+            return {
+                "total_periodo":
+                    resultado["total_periodo"] or 0,
+
+                "promedio_minutos_solucion":
+                    resultado["promedio_minutos_solucion"] or 0,
+
+                "promedio_minutos_cierre":
+                    resultado["promedio_minutos_cierre"] or 0,
+
+                "promedio_confirmacion":
+                    resultado["promedio_confirmacion"] or 0
+            }
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+                

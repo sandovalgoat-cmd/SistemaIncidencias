@@ -4,6 +4,7 @@ from tkinter import messagebox
 from views.usuarios import VistaUsuarios
 from views.nuevo_ticket import VistaNuevoTicket
 from views.tickets import VistaTickets
+from views.reportes import VistaReportes
 from controllers.ticket_controller import TicketController
 
 class Dashboard(ctk.CTkToplevel):
@@ -495,21 +496,10 @@ class Dashboard(ctk.CTkToplevel):
     def mostrar_reportes(self):
 
         self.limpiar_contenido()
-        self.crear_titulo("Reportes y estadísticas")
 
-        texto = ctk.CTkLabel(
-            self.contenido,
-            text=(
-                "Aquí se mostrarán estadísticas y reportes "
-                "del sistema."
-            ),
-            font=("Arial", 17)
-        )
-
-        texto.pack(
-            padx=40,
-            pady=20,
-            anchor="w"
+        VistaReportes(
+            master=self.contenido,
+            usuario_sesion=self.usuario
         )
 
     # ==================================================

@@ -394,4 +394,74 @@ class TicketController:
                     False,
                     f"No fue posible confirmar la solución: {error}"
                 )    
-        
+
+    @staticmethod
+    def obtener_reportes(usuario_sesion):
+
+        if usuario_sesion["rol"] not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para consultar reportes."
+            )
+
+        try:
+            resultado = {
+                "general": Ticket.obtener_reporte_general(),
+                "estados": Ticket.reporte_por_estado(),
+                "prioridades": Ticket.reporte_por_prioridad(),
+                "categorias": Ticket.reporte_por_categoria(),
+                "tecnicos": Ticket.reporte_por_tecnico()
+            }
+
+            return True, resultado
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible generar los reportes: {error}"
+            )    
+
+    @staticmethod
+    def obtener_metricas_tiempo(
+        usuario_sesion,
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
+
+        if usuario_sesion["rol"] not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para consultar métricas."
+            )
+
+        try:
+            resultado = Ticket.obtener_metricas_tiempo(
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin
+            )
+
+            return True, resultado
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible consultar las métricas: {error}"
+            )
