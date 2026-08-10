@@ -396,7 +396,15 @@ class TicketController:
                 )    
 
     @staticmethod
-    def obtener_reportes(usuario_sesion):
+    def obtener_reportes(
+        usuario_sesion,
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
+
+        # ==========================================
+        # VALIDAR PERMISOS
+        # ==========================================
 
         if usuario_sesion["rol"] not in (
             "Administrador",
@@ -408,27 +416,56 @@ class TicketController:
             )
 
         try:
+
+            # ==========================================
+            # OBTENER INFORMACIÓN DEL MODELO
+            # ==========================================
+
             resultado = {
-                "general": Ticket.obtener_reporte_general(),
-                "estados": Ticket.reporte_por_estado(),
-                "prioridades": Ticket.reporte_por_prioridad(),
-                "categorias": Ticket.reporte_por_categoria(),
-                "tecnicos": Ticket.reporte_por_tecnico()
+
+                "general":
+                    Ticket.obtener_reporte_general(),
+
+                "estados":
+                    Ticket.reporte_por_estado(
+                        fecha_inicio=fecha_inicio,
+                        fecha_fin=fecha_fin
+                    ),
+
+                "prioridades":
+                    Ticket.reporte_por_prioridad(
+                        fecha_inicio=fecha_inicio,
+                        fecha_fin=fecha_fin
+                    ),
+
+                "categorias":
+                    Ticket.reporte_por_categoria(
+                        fecha_inicio=fecha_inicio,
+                        fecha_fin=fecha_fin
+                    ),
+
+                "tecnicos":
+                    Ticket.reporte_por_tecnico(
+                        fecha_inicio=fecha_inicio,
+                        fecha_fin=fecha_fin
+                    )
             }
 
             return True, resultado
 
         except mysql.connector.Error as error:
+
             return (
                 False,
                 f"Error de base de datos: {error}"
             )
 
         except Exception as error:
+
             return (
                 False,
                 f"No fue posible generar los reportes: {error}"
-            )    
+            )   
 
     @staticmethod
     def obtener_metricas_tiempo(

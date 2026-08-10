@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 
+from views.catalogos import VistaCatalogos
 from views.usuarios import VistaUsuarios
 from views.nuevo_ticket import VistaNuevoTicket
 from views.tickets import VistaTickets
@@ -472,21 +473,10 @@ class Dashboard(ctk.CTkToplevel):
     def mostrar_catalogos(self):
 
         self.limpiar_contenido()
-        self.crear_titulo("Catálogos del sistema")
 
-        texto = ctk.CTkLabel(
-            self.contenido,
-            text=(
-                "Aquí se administrarán las categorías, "
-                "prioridades, estados, áreas y roles."
-            ),
-            font=("Arial", 17)
-        )
-
-        texto.pack(
-            padx=40,
-            pady=20,
-            anchor="w"
+        VistaCatalogos(
+            master=self.contenido,
+            usuario_sesion=self.usuario
         )
 
     # ==================================================

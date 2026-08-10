@@ -756,7 +756,6 @@ class Ticket:
             ):
                 conexion.close()
 
-
     @staticmethod
     def listar_comentarios(
         id_ticket,
@@ -1180,7 +1179,10 @@ class Ticket:
                 conexion.close()
 
     @staticmethod
-    def reporte_por_estado():
+    def reporte_por_estado(
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
         conexion = None
         cursor = None
 
@@ -1188,14 +1190,39 @@ class Ticket:
             conexion = conectar()
             cursor = conexion.cursor(dictionary=True)
 
-            sql = """
+            condiciones = []
+            parametros = []
+
+            if fecha_inicio:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) >= %s"
+                )
+                parametros.append(fecha_inicio)
+
+            if fecha_fin:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) <= %s"
+                )
+                parametros.append(fecha_fin)
+
+            filtro = ""
+
+            if condiciones:
+                filtro = (
+                    " AND "
+                    + " AND ".join(condiciones)
+                )
+
+            sql = f"""
                 SELECT
                     e.nombre AS nombre,
                     COUNT(t.id_ticket) AS cantidad
+
                 FROM estados AS e
 
                 LEFT JOIN tickets AS t
                     ON e.id_estado = t.id_estado
+                    {filtro}
 
                 GROUP BY
                     e.id_estado,
@@ -1204,7 +1231,10 @@ class Ticket:
                 ORDER BY cantidad DESC
             """
 
-            cursor.execute(sql)
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
 
             return cursor.fetchall()
 
@@ -1218,9 +1248,11 @@ class Ticket:
             ):
                 conexion.close()
 
-
     @staticmethod
-    def reporte_por_prioridad():
+    def reporte_por_prioridad(
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
         conexion = None
         cursor = None
 
@@ -1228,14 +1260,39 @@ class Ticket:
             conexion = conectar()
             cursor = conexion.cursor(dictionary=True)
 
-            sql = """
+            condiciones = []
+            parametros = []
+
+            if fecha_inicio:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) >= %s"
+                )
+                parametros.append(fecha_inicio)
+
+            if fecha_fin:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) <= %s"
+                )
+                parametros.append(fecha_fin)
+
+            filtro = ""
+
+            if condiciones:
+                filtro = (
+                    " AND "
+                    + " AND ".join(condiciones)
+                )
+
+            sql = f"""
                 SELECT
                     p.nombre AS nombre,
                     COUNT(t.id_ticket) AS cantidad
+
                 FROM prioridades AS p
 
                 LEFT JOIN tickets AS t
                     ON p.id_prioridad = t.id_prioridad
+                    {filtro}
 
                 GROUP BY
                     p.id_prioridad,
@@ -1244,7 +1301,10 @@ class Ticket:
                 ORDER BY cantidad DESC
             """
 
-            cursor.execute(sql)
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
 
             return cursor.fetchall()
 
@@ -1258,9 +1318,11 @@ class Ticket:
             ):
                 conexion.close()
 
-
     @staticmethod
-    def reporte_por_categoria():
+    def reporte_por_categoria(
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
         conexion = None
         cursor = None
 
@@ -1268,14 +1330,39 @@ class Ticket:
             conexion = conectar()
             cursor = conexion.cursor(dictionary=True)
 
-            sql = """
+            condiciones = []
+            parametros = []
+
+            if fecha_inicio:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) >= %s"
+                )
+                parametros.append(fecha_inicio)
+
+            if fecha_fin:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) <= %s"
+                )
+                parametros.append(fecha_fin)
+
+            filtro = ""
+
+            if condiciones:
+                filtro = (
+                    " AND "
+                    + " AND ".join(condiciones)
+                )
+
+            sql = f"""
                 SELECT
                     c.nombre AS nombre,
                     COUNT(t.id_ticket) AS cantidad
+
                 FROM categorias AS c
 
                 LEFT JOIN tickets AS t
                     ON c.id_categoria = t.id_categoria
+                    {filtro}
 
                 GROUP BY
                     c.id_categoria,
@@ -1284,7 +1371,10 @@ class Ticket:
                 ORDER BY cantidad DESC
             """
 
-            cursor.execute(sql)
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
 
             return cursor.fetchall()
 
@@ -1298,9 +1388,11 @@ class Ticket:
             ):
                 conexion.close()
 
-
     @staticmethod
-    def reporte_por_tecnico():
+    def reporte_por_tecnico(
+        fecha_inicio=None,
+        fecha_fin=None
+    ):
         conexion = None
         cursor = None
 
@@ -1308,7 +1400,30 @@ class Ticket:
             conexion = conectar()
             cursor = conexion.cursor(dictionary=True)
 
-            sql = """
+            condiciones = []
+            parametros = []
+
+            if fecha_inicio:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) >= %s"
+                )
+                parametros.append(fecha_inicio)
+
+            if fecha_fin:
+                condiciones.append(
+                    "DATE(t.fecha_creacion) <= %s"
+                )
+                parametros.append(fecha_fin)
+
+            filtro = ""
+
+            if condiciones:
+                filtro = (
+                    " AND "
+                    + " AND ".join(condiciones)
+                )
+
+            sql = f"""
                 SELECT
                     CONCAT(
                         u.nombre,
@@ -1325,6 +1440,7 @@ class Ticket:
 
                 LEFT JOIN tickets AS t
                     ON u.id_usuario = t.id_tecnico
+                    {filtro}
 
                 WHERE r.nombre = 'Tecnico'
 
@@ -1336,7 +1452,10 @@ class Ticket:
                 ORDER BY cantidad DESC
             """
 
-            cursor.execute(sql)
+            cursor.execute(
+                sql,
+                tuple(parametros)
+            )
 
             return cursor.fetchall()
 
