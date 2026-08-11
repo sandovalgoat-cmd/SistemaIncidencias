@@ -135,6 +135,7 @@ class TicketController:
         id_tecnico,
         usuario_sesion
     ):
+
         rol = usuario_sesion["rol"]
 
         if rol not in (
@@ -153,10 +154,28 @@ class TicketController:
             )
 
         try:
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            if ticket["estado"] == "Cerrado":
+                return (
+                    False,
+                    "No se puede reasignar un ticket cerrado."
+                )
+
             Ticket.asignar_tecnico(
                 id_ticket=id_ticket,
                 id_tecnico=id_tecnico,
-                id_usuario_accion=usuario_sesion["id_usuario"]
+                id_usuario_accion=
+                    usuario_sesion["id_usuario"]
             )
 
             return (
@@ -183,8 +202,13 @@ class TicketController:
         usuario_sesion
     ):
 
-        # Solo técnicos, EncargadoTI y Administrador
-        if usuario_sesion["rol"] not in (
+        rol = usuario_sesion["rol"]
+
+        # ==========================================
+        # VALIDAR ROL
+        # ==========================================
+
+        if rol not in (
             "Tecnico",
             "EncargadoTI",
             "Administrador"
@@ -193,6 +217,10 @@ class TicketController:
                 False,
                 "No tiene permisos para cambiar el estado."
             )
+
+        # ==========================================
+        # ESTADOS VÁLIDOS
+        # ==========================================
 
         estados_permitidos = (
             "Asignado",
@@ -208,10 +236,102 @@ class TicketController:
             )
 
         try:
+
+            # ==========================================
+            # CONSULTAR TICKET ACTUAL
+            # ==========================================
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            estado_actual = ticket["estado"]
+
+            # ==========================================
+            # TÉCNICO: SOLO SUS TICKETS
+            # ==========================================
+
+            if rol == "Tecnico":
+
+                if (
+                    ticket["id_tecnico"]
+                    != usuario_sesion["id_usuario"]
+                ):
+                    return (
+                        False,
+                        "Este ticket no está asignado a usted."
+                    )
+
+            # ==========================================
+            # NO MODIFICAR TICKETS CERRADOS
+            # ==========================================
+
+            if estado_actual == "Cerrado":
+                return (
+                    False,
+                    "Un ticket cerrado no puede modificarse."
+                )
+
+            # ==========================================
+            # TRANSICIONES PERMITIDAS
+            # ==========================================
+
+            transiciones = {
+
+                "Nuevo": (
+                    "Asignado",
+                ),
+
+                "Asignado": (
+                    "En Proceso",
+                ),
+
+                "En Proceso": (
+                    "En Espera",
+                    "Solucionado"
+                ),
+
+                "En Espera": (
+                    "En Proceso",
+                    "Solucionado"
+                ),
+
+                "Solucionado": ()
+            }
+
+            permitidos_desde_actual = (
+                transiciones.get(
+                    estado_actual,
+                    ()
+                )
+            )
+
+            if nuevo_estado not in permitidos_desde_actual:
+
+                return (
+                    False,
+                    (
+                        f"No se puede cambiar de "
+                        f"'{estado_actual}' a "
+                        f"'{nuevo_estado}'."
+                    )
+                )
+
+            # ==========================================
+            # ACTUALIZAR
+            # ==========================================
+
             Ticket.cambiar_estado(
                 id_ticket=id_ticket,
                 nuevo_estado=nuevo_estado,
-                id_usuario_accion=usuario_sesion["id_usuario"]
+                id_usuario_accion=
+                    usuario_sesion["id_usuario"]
             )
 
             return (
@@ -220,12 +340,14 @@ class TicketController:
             )
 
         except mysql.connector.Error as error:
+
             return (
                 False,
                 f"Error de base de datos: {error}"
             )
 
         except Exception as error:
+
             return (
                 False,
                 f"No fue posible cambiar el estado: {error}"
@@ -238,30 +360,79 @@ class TicketController:
         publico,
         usuario_sesion
     ):
+
+        # ==========================================
+        # VALIDAR COMENTARIO
+        # ==========================================
+
         comentario = comentario.strip()
 
         if not comentario:
             return (
                 False,
-                "Escriba un comentario."
-            )
-
-        if len(comentario) < 3:
-            return (
-                False,
-                "El comentario es demasiado corto."
-            )
-
-        rol = usuario_sesion["rol"]
-
-        # Un empleado no puede crear notas privadas
-        if not publico and rol == "Empleado":
-            return (
-                False,
-                "No tiene permisos para crear notas internas."
+                "El comentario no puede estar vacío."
             )
 
         try:
+
+            # ==========================================
+            # OBTENER TICKET
+            # ==========================================
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            # ==========================================
+            # TICKET CERRADO
+            # ==========================================
+
+            if ticket["estado"] == "Cerrado":
+                return (
+                    False,
+                    "No se pueden agregar comentarios "
+                    "a un ticket cerrado."
+                )
+
+            # ==========================================
+            # VALIDACIÓN PARA TÉCNICO
+            # ==========================================
+
+            if (
+                usuario_sesion["rol"] == "Tecnico"
+                and ticket["id_tecnico"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "Este ticket no está asignado a usted."
+                )
+
+            # ==========================================
+            # VALIDACIÓN PARA EMPLEADO
+            # ==========================================
+
+            if (
+                usuario_sesion["rol"] == "Empleado"
+                and ticket["id_usuario"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "No puede comentar un ticket "
+                    "que no le pertenece."
+                )
+
+            # ==========================================
+            # GUARDAR COMENTARIO
+            # ==========================================
+
             Ticket.agregar_comentario(
                 id_ticket=id_ticket,
                 id_usuario=usuario_sesion["id_usuario"],
@@ -271,19 +442,21 @@ class TicketController:
 
             return (
                 True,
-                "Comentario guardado correctamente."
+                "Comentario agregado correctamente."
             )
 
         except mysql.connector.Error as error:
+
             return (
                 False,
                 f"Error de base de datos: {error}"
             )
 
         except Exception as error:
+
             return (
                 False,
-                f"No fue posible guardar el comentario: {error}"
+                f"No fue posible agregar el comentario: {error}"
             )
 
     @staticmethod
@@ -502,3 +675,134 @@ class TicketController:
                 False,
                 f"No fue posible consultar las métricas: {error}"
             )
+
+    @staticmethod
+    def obtener_metricas_dashboard(
+        usuario_sesion
+    ):
+
+        if usuario_sesion["rol"] not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para consultar "
+                "las métricas del Dashboard."
+            )
+
+        try:
+
+            metricas = (
+                Ticket.obtener_metricas_dashboard()
+            )
+
+            return (
+                True,
+                metricas
+            )
+
+        except mysql.connector.Error as error:
+
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+
+            return (
+                False,
+                f"No fue posible obtener las métricas: {error}"
+            )
+
+    @staticmethod
+    def obtener_metricas_por_usuario(
+        usuario_sesion
+    ):
+
+        rol = usuario_sesion["rol"]
+
+        if rol not in (
+            "Tecnico",
+            "Empleado"
+        ):
+            return (
+                False,
+                "Este tipo de usuario no utiliza "
+                "métricas individuales."
+            )
+
+        try:
+
+            metricas = (
+                Ticket.obtener_metricas_por_usuario(
+                    id_usuario=usuario_sesion["id_usuario"],
+                    rol=rol
+                )
+            )
+
+            return (
+                True,
+                metricas
+            )
+
+        except mysql.connector.Error as error:
+
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+
+            return (
+                False,
+                f"No fue posible obtener las métricas: {error}"
+            ) 
+
+    @staticmethod
+    def obtener_resumen_dashboard(
+        usuario_sesion
+    ):
+
+        if usuario_sesion["rol"] not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para consultar "
+                "el resumen del Dashboard."
+            )
+
+        try:
+
+            resultado = {
+                "carga_tecnicos":
+                    Ticket.obtener_carga_tecnicos(),
+
+                "tickets_recientes":
+                    Ticket.obtener_tickets_recientes(
+                        limite=5
+                    )
+            }
+
+            return (
+                True,
+                resultado
+            )
+
+        except mysql.connector.Error as error:
+
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+
+            return (
+                False,
+                f"No fue posible cargar el resumen: {error}"
+            )               

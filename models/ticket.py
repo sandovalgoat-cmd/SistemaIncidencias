@@ -1583,4 +1583,400 @@ class Ticket:
             ):
                 conexion.close()
 
-                
+    @staticmethod
+    def obtener_metricas_dashboard():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+
+                    COUNT(*) AS total,
+
+                    SUM(
+                        CASE
+                            WHEN t.id_tecnico IS NULL
+                            AND e.nombre <> 'Cerrado'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS sin_asignar,
+
+                    SUM(
+                        CASE
+                            WHEN e.nombre = 'Solucionado'
+                            AND t.confirmado = 0
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS pendientes_confirmacion
+
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+            """
+
+            cursor.execute(sql)
+
+            resultado = cursor.fetchone()
+
+            return {
+                "total": resultado["total"] or 0,
+                "sin_asignar": resultado["sin_asignar"] or 0,
+                "pendientes_confirmacion":
+                    resultado["pendientes_confirmacion"] or 0
+            }
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close() 
+
+    @staticmethod
+    def obtener_metricas_por_usuario(
+        id_usuario,
+        rol
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            # ==========================================
+            # TÉCNICO
+            # ==========================================
+
+            if rol == "Tecnico":
+
+                sql = """
+                    SELECT
+
+                        COUNT(*) AS total,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'Asignado'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS asignados,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'En Proceso'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS en_proceso,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'En Espera'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS en_espera,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'Solucionado'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS solucionados
+
+                    FROM tickets AS t
+
+                    INNER JOIN estados AS e
+                        ON t.id_estado = e.id_estado
+
+                    WHERE t.id_tecnico = %s
+                """
+
+                cursor.execute(
+                    sql,
+                    (id_usuario,)
+                )
+
+                resultado = cursor.fetchone()
+
+                return {
+                    "total": resultado["total"] or 0,
+                    "asignados": resultado["asignados"] or 0,
+                    "en_proceso": resultado["en_proceso"] or 0,
+                    "en_espera": resultado["en_espera"] or 0,
+                    "solucionados": resultado["solucionados"] or 0
+                }
+
+            # ==========================================
+            # EMPLEADO
+            # ==========================================
+
+            elif rol == "Empleado":
+
+                sql = """
+                    SELECT
+
+                        COUNT(*) AS total,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'Nuevo'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS nuevos,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'En Proceso'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS en_proceso,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'Solucionado'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS solucionados,
+
+                        SUM(
+                            CASE
+                                WHEN e.nombre = 'Cerrado'
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS cerrados
+
+                    FROM tickets AS t
+
+                    INNER JOIN estados AS e
+                        ON t.id_estado = e.id_estado
+
+                    WHERE t.id_usuario = %s
+                """
+
+                cursor.execute(
+                    sql,
+                    (id_usuario,)
+                )
+
+                resultado = cursor.fetchone()
+
+                return {
+                    "total": resultado["total"] or 0,
+                    "nuevos": resultado["nuevos"] or 0,
+                    "en_proceso": resultado["en_proceso"] or 0,
+                    "solucionados": resultado["solucionados"] or 0,
+                    "cerrados": resultado["cerrados"] or 0
+                }
+
+            return {}
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def obtener_carga_tecnicos():
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    u.id_usuario,
+                    CONCAT(
+                        u.nombre,
+                        ' ',
+                        u.apellido
+                    ) AS tecnico,
+
+                    COUNT(t.id_ticket) AS cantidad
+
+                FROM usuarios AS u
+
+                INNER JOIN roles AS r
+                    ON u.id_rol = r.id_rol
+
+                LEFT JOIN tickets AS t
+                    ON u.id_usuario = t.id_tecnico
+
+                    AND t.id_estado IN (
+                        SELECT id_estado
+                        FROM estados
+                        WHERE nombre IN (
+                            'Asignado',
+                            'En Proceso',
+                            'En Espera',
+                            'Solucionado'
+                        )
+                    )
+
+                WHERE
+                    r.nombre = 'Tecnico'
+                    AND u.estado = 1
+
+                GROUP BY
+                    u.id_usuario,
+                    u.nombre,
+                    u.apellido
+
+                ORDER BY
+                    cantidad DESC,
+                    tecnico ASC
+            """
+
+            cursor.execute(sql)
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()
+
+    @staticmethod
+    def obtener_tickets_recientes(limite=5):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            sql = """
+                SELECT
+                    t.id_ticket,
+                    t.folio,
+                    t.titulo,
+                    t.fecha_creacion,
+
+                    e.nombre AS estado,
+                    p.nombre AS prioridad,
+
+                    COALESCE(
+                        CONCAT(
+                            tecnico.nombre,
+                            ' ',
+                            tecnico.apellido
+                        ),
+                        'Sin asignar'
+                    ) AS tecnico
+
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                INNER JOIN prioridades AS p
+                    ON t.id_prioridad = p.id_prioridad
+
+                LEFT JOIN usuarios AS tecnico
+                    ON t.id_tecnico = tecnico.id_usuario
+
+                ORDER BY
+                    t.fecha_creacion DESC,
+                    t.id_ticket DESC
+
+                LIMIT %s
+            """
+
+            cursor.execute(
+                sql,
+                (limite,)
+            )
+
+            return cursor.fetchall()
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()  
+
+    @staticmethod
+    def obtener_ticket_por_id(id_ticket):
+
+        conexion = None
+        cursor = None
+
+        try:
+
+            conexion = conectar()
+
+            cursor = conexion.cursor(
+                dictionary=True
+            )
+
+            sql = """
+                SELECT
+                    t.id_ticket,
+                    t.id_usuario,
+                    t.id_tecnico,
+                    t.confirmado,
+
+                    e.nombre AS estado
+
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                WHERE t.id_ticket = %s
+
+                LIMIT 1
+            """
+
+            cursor.execute(
+                sql,
+                (id_ticket,)
+            )
+
+            return cursor.fetchone()
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()                                 

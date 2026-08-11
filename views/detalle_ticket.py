@@ -29,10 +29,6 @@ class VistaDetalleTicket(ctk.CTkFrame):
 
         self.crear_interfaz()
 
-    # ==================================================
-    # CREAR INTERFAZ
-    # ==================================================
-
     def crear_interfaz(self):
 
         # ----------------------------------------------
@@ -316,9 +312,12 @@ class VistaDetalleTicket(ctk.CTkFrame):
         # ASIGNACIÓN DE TÉCNICO
         # ==============================================
 
-        if self.usuario_sesion["rol"] in (
-            "Administrador",
-            "EncargadoTI"
+        if (
+            self.usuario_sesion["rol"] in (
+                "Administrador",
+                "EncargadoTI"
+            )
+            and self.ticket["estado"] != "Cerrado"
         ):
             self.crear_panel_asignacion(
                 contenedor,
@@ -329,10 +328,13 @@ class VistaDetalleTicket(ctk.CTkFrame):
         # CAMBIO DE ESTADO
         # ==============================================
 
-        if self.usuario_sesion["rol"] in (
-            "Tecnico",
-            "Administrador",
-            "EncargadoTI"
+        if (
+            self.usuario_sesion["rol"] in (
+                "Tecnico",
+                "Administrador",
+                "EncargadoTI"
+            )
+            and self.ticket["estado"] != "Cerrado"
         ):
             self.crear_panel_estado(
                 contenedor,
@@ -342,7 +344,6 @@ class VistaDetalleTicket(ctk.CTkFrame):
 
         # ==============================================
         # COMENTARIOS
-        # TODOS LOS ROLES PUEDEN VERLOS
         # ==============================================
 
         self.crear_panel_comentarios(
@@ -350,21 +351,25 @@ class VistaDetalleTicket(ctk.CTkFrame):
             fila=14
         )
 
+
+       # CONFIRMACIÓN
+       
         if (
-    self.usuario_sesion["rol"] == "Empleado"
-    and self.ticket["estado"] == "Solucionado"
-):
+            self.usuario_sesion["rol"] == "Empleado"
+            and self.ticket["estado"] == "Solucionado"
+            and self.ticket["id_usuario"]
+                == self.usuario_sesion["id_usuario"]
+        ):
             self.crear_panel_confirmacion(
                 contenedor,
                 fila=15
             )
 
             fila_historial = 16
-
         else:
             fila_historial = 15
 
-
+        # HISTORIAL
         self.crear_panel_historial(
             contenedor,
             fila=fila_historial
@@ -396,10 +401,6 @@ class VistaDetalleTicket(ctk.CTkFrame):
             padx=padx,
             pady=(20, 4)
         )
-
-    # ==================================================
-    # CREAR CAMPO DE INFORMACIÓN
-    # ==================================================
 
     def crear_campo(
         self,
@@ -667,12 +668,52 @@ class VistaDetalleTicket(ctk.CTkFrame):
             pady=(20, 10)
         )
 
-        estados = [
-            "Asignado",
-            "En Proceso",
-            "En Espera",
-            "Solucionado"
-        ]
+        estado_actual = self.ticket["estado"]
+
+        transiciones = {
+
+            "Asignado": [
+                "En Proceso"
+            ],
+
+            "En Proceso": [
+                "En Espera",
+                "Solucionado"
+            ],
+
+            "En Espera": [
+                "En Proceso"
+            ],
+
+            "Solucionado": []
+        }
+
+        estados = transiciones.get(
+            estado_actual,
+            []
+        )
+
+        if not estados:
+
+            ctk.CTkLabel(
+                panel,
+                text=(
+                    "No existen cambios de estado "
+                    "disponibles para este ticket."
+                ),
+                font=("Arial", 13),
+                text_color="#6B7280"
+            ).grid(
+                row=1,
+                column=0,
+                columnspan=2,
+                sticky="w",
+                padx=20,
+                pady=(5, 20)
+            )
+
+            return
+
 
         self.combo_estado_ticket = ctk.CTkComboBox(
             panel,
@@ -691,15 +732,9 @@ class VistaDetalleTicket(ctk.CTkFrame):
 
         estado_actual = self.ticket["estado"]
 
-        if estado_actual in estados:
-            self.combo_estado_ticket.set(
-                estado_actual
-            )
-
-        else:
-            self.combo_estado_ticket.set(
-                estados[0]
-            )
+        self.combo_estado_ticket.set(
+            estados[0]
+)
 
         self.boton_estado = ctk.CTkButton(
             panel,
@@ -786,6 +821,7 @@ class VistaDetalleTicket(ctk.CTkFrame):
         master,
         fila
     ):
+        
         panel = ctk.CTkFrame(
             master,
             fg_color="#F8FAFC",
@@ -874,6 +910,11 @@ class VistaDetalleTicket(ctk.CTkFrame):
             pady=(0, 10)
         )
 
+        if ticket_cerrado:
+            self.texto_comentario.configure(
+                state="disabled"
+            )
+
         # ==============================================
         # TIPO DE COMENTARIO
         # ==============================================
@@ -892,6 +933,10 @@ class VistaDetalleTicket(ctk.CTkFrame):
         )
 
         rol = self.usuario_sesion["rol"]
+
+        ticket_cerrado = (
+            self.ticket["estado"] == "Cerrado"
+        )
 
         if rol in (
             "Administrador",
@@ -934,6 +979,12 @@ class VistaDetalleTicket(ctk.CTkFrame):
         self.boton_comentario.pack(
             side="right"
         )
+
+        if ticket_cerrado:
+            self.boton_comentario.configure(
+                state="disabled",
+                text="Ticket cerrado"
+            )
 
     def cargar_comentarios(self):
 

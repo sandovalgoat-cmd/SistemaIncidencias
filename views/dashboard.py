@@ -29,10 +29,6 @@ class Dashboard(ctk.CTkToplevel):
 
         self.after(100, self.focus_force)
 
-    # ==================================================
-    # CREAR INTERFAZ GENERAL
-    # ==================================================
-
     def crear_interfaz(self):
 
         self.grid_columnconfigure(1, weight=1)
@@ -131,10 +127,6 @@ class Dashboard(ctk.CTkToplevel):
             sticky="nsew"
         )
 
-    # ==================================================
-    # CREAR BOTONES DEL MENÚ
-    # ==================================================
-
     def crear_boton_menu(self, texto, comando):
 
         boton = ctk.CTkButton(
@@ -154,10 +146,6 @@ class Dashboard(ctk.CTkToplevel):
             padx=15,
             pady=4
         )
-
-    # ==================================================
-    # MENÚ SEGÚN EL ROL
-    # ==================================================
 
     def crear_menu_por_rol(self):
 
@@ -257,18 +245,10 @@ class Dashboard(ctk.CTkToplevel):
                 self.mostrar_tickets
             )
 
-    # ==================================================
-    # LIMPIAR EL ÁREA DE CONTENIDO
-    # ==================================================
-
     def limpiar_contenido(self):
 
         for widget in self.contenido.winfo_children():
             widget.destroy()
-
-    # ==================================================
-    # CREAR TÍTULOS
-    # ==================================================
 
     def crear_titulo(self, texto):
 
@@ -284,10 +264,6 @@ class Dashboard(ctk.CTkToplevel):
             padx=40,
             pady=(35, 20)
         )
-
-    # ==================================================
-    # PANTALLA DE INICIO
-    # ==================================================
 
     def mostrar_inicio(self):
 
@@ -328,9 +304,11 @@ class Dashboard(ctk.CTkToplevel):
 
         self.crear_tarjetas_inicio()
 
-    # ==================================================
-    # TARJETAS DE RESUMEN
-    # ==================================================
+        if self.usuario["rol"] in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            self.crear_resumen_operativo()
 
     def crear_tarjetas_inicio(self):
 
@@ -345,48 +323,149 @@ class Dashboard(ctk.CTkToplevel):
             pady=35
         )
 
-        # Consultar estadísticas reales
-        exito, resultado = TicketController.obtener_estadisticas(
-            self.usuario
-        )
+        # ==============================================
+        # IDENTIFICAR ROL
+        # ==============================================
 
-        if exito:
-            nuevos = resultado["nuevos"]
-            en_proceso = resultado["en_proceso"]
-            urgentes = resultado["urgentes"]
-            cerrados = resultado["cerrados"]
+        rol = self.usuario["rol"]
+
+        # ==============================================
+        # ADMINISTRADOR / ENCARGADO TI
+        # ==============================================
+
+        if rol in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+
+            exito, resultado = (
+                TicketController.obtener_estadisticas(
+                    self.usuario
+                )
+            )
+
+            if exito:
+                nuevos = resultado["nuevos"]
+                en_proceso = resultado["en_proceso"]
+                urgentes = resultado["urgentes"]
+                cerrados = resultado["cerrados"]
+
+            else:
+                nuevos = 0
+                en_proceso = 0
+                urgentes = 0
+                cerrados = 0
+
+            exito_metricas, metricas = (
+                TicketController.obtener_metricas_dashboard(
+                    self.usuario
+                )
+            )
+
+            if exito_metricas:
+                total = metricas["total"]
+                sin_asignar = metricas["sin_asignar"]
+                pendientes = metricas[
+                    "pendientes_confirmacion"
+                ]
+
+            else:
+                total = 0
+                sin_asignar = 0
+                pendientes = 0
+
+            tarjetas = [
+                ("Total de tickets", total),
+                ("Tickets nuevos", nuevos),
+                ("En proceso", en_proceso),
+                ("Urgentes", urgentes),
+                ("Cerrados", cerrados),
+                ("Sin asignar", sin_asignar),
+                ("Por confirmar", pendientes)
+            ]
+
+        # ==============================================
+        # TÉCNICO
+        # ==============================================
+
+        elif rol == "Tecnico":
+
+            exito, metricas = (
+                TicketController.obtener_metricas_por_usuario(
+                    self.usuario
+                )
+            )
+
+            if exito:
+                tarjetas = [
+                    ("Mis tickets", metricas["total"]),
+                    ("Asignados", metricas["asignados"]),
+                    ("En proceso", metricas["en_proceso"]),
+                    ("En espera", metricas["en_espera"]),
+                    ("Solucionados", metricas["solucionados"])
+                ]
+
+            else:
+                tarjetas = [
+                    ("Mis tickets", 0),
+                    ("Asignados", 0),
+                    ("En proceso", 0),
+                    ("En espera", 0),
+                    ("Solucionados", 0)
+                ]
+
+        # ==============================================
+        # EMPLEADO
+        # ==============================================
+
+        elif rol == "Empleado":
+
+            exito, metricas = (
+                TicketController.obtener_metricas_por_usuario(
+                    self.usuario
+                )
+            )
+
+            if exito:
+                tarjetas = [
+                    ("Mis tickets", metricas["total"]),
+                    ("Nuevos", metricas["nuevos"]),
+                    ("En proceso", metricas["en_proceso"]),
+                    ("Solucionados", metricas["solucionados"]),
+                    ("Cerrados", metricas["cerrados"])
+                ]
+
+            else:
+                tarjetas = [
+                    ("Mis tickets", 0),
+                    ("Nuevos", 0),
+                    ("En proceso", 0),
+                    ("Solucionados", 0),
+                    ("Cerrados", 0)
+                ]
 
         else:
-            nuevos = 0
-            en_proceso = 0
-            urgentes = 0
-            cerrados = 0
+            tarjetas = []
 
-            print(
-                "Error cargando estadísticas:",
-                resultado
+        # ==============================================
+        # CONFIGURAR COLUMNAS
+        # ==============================================
+
+        for columna in range(4):
+
+            contenedor.grid_columnconfigure(
+                columna,
+                weight=1
             )
 
-        tarjetas = [
-            (
-                "Tickets nuevos",
-                nuevos
-            ),
-            (
-                "En proceso",
-                en_proceso
-            ),
-            (
-                "Urgentes",
-                urgentes
-            ),
-            (
-                "Cerrados",
-                cerrados
-            )
-        ]
+        # ==============================================
+        # DIBUJAR TARJETAS
+        # ==============================================
 
         for indice, datos in enumerate(tarjetas):
+
+            fila = indice // 4
+            columna = indice % 4
 
             tarjeta = ctk.CTkFrame(
                 contenedor,
@@ -396,15 +475,11 @@ class Dashboard(ctk.CTkToplevel):
             )
 
             tarjeta.grid(
-                row=0,
-                column=indice,
+                row=fila,
+                column=columna,
                 padx=8,
+                pady=8,
                 sticky="nsew"
-            )
-
-            contenedor.grid_columnconfigure(
-                indice,
-                weight=1
             )
 
             etiqueta = ctk.CTkLabel(
@@ -425,11 +500,9 @@ class Dashboard(ctk.CTkToplevel):
                 text_color="#1565C0"
             )
 
-            cantidad.pack()
-
-    # ==================================================
-    # MÓDULO DE USUARIOS
-    # ==================================================
+            cantidad.pack(
+                pady=(0, 20)
+            )
 
     def mostrar_usuarios(self):
 
@@ -440,10 +513,6 @@ class Dashboard(ctk.CTkToplevel):
             usuario_sesion=self.usuario
         )
 
-    # ==================================================
-    # MÓDULO PARA REGISTRAR UN TICKET
-    # ==================================================
-
     def mostrar_nuevo_ticket(self):
 
         self.limpiar_contenido()
@@ -452,10 +521,6 @@ class Dashboard(ctk.CTkToplevel):
             master=self.contenido,
             usuario_sesion=self.usuario
         )
-
-    # ==================================================
-    # MÓDULO DE TICKETS
-    # ==================================================
 
     def mostrar_tickets(self):
 
@@ -466,10 +531,6 @@ class Dashboard(ctk.CTkToplevel):
                 usuario_sesion=self.usuario
             )
 
-    # ==================================================
-    # CATÁLOGOS
-    # ==================================================
-
     def mostrar_catalogos(self):
 
         self.limpiar_contenido()
@@ -479,10 +540,6 @@ class Dashboard(ctk.CTkToplevel):
             usuario_sesion=self.usuario
         )
 
-    # ==================================================
-    # REPORTES
-    # ==================================================
-
     def mostrar_reportes(self):
 
         self.limpiar_contenido()
@@ -491,10 +548,6 @@ class Dashboard(ctk.CTkToplevel):
             master=self.contenido,
             usuario_sesion=self.usuario
         )
-
-    # ==================================================
-    # ASIGNACIÓN DE TÉCNICOS
-    # ==================================================
 
     def mostrar_asignaciones(self):
 
@@ -516,10 +569,6 @@ class Dashboard(ctk.CTkToplevel):
             anchor="w"
         )
 
-    # ==================================================
-    # HISTORIAL
-    # ==================================================
-
     def mostrar_historial(self):
 
         self.limpiar_contenido()
@@ -540,10 +589,6 @@ class Dashboard(ctk.CTkToplevel):
             anchor="w"
         )
 
-    # ==================================================
-    # CERRAR SESIÓN
-    # ==================================================
-
     def cerrar_sesion(self):
 
         respuesta = messagebox.askyesno(
@@ -562,10 +607,6 @@ class Dashboard(ctk.CTkToplevel):
         self.ventana_login.password.delete(0, "end")
         self.ventana_login.usuario.focus()
 
-    # ==================================================
-    # CERRAR COMPLETAMENTE EL SISTEMA
-    # ==================================================
-
     def cerrar_sistema(self):
 
         respuesta = messagebox.askyesno(
@@ -575,4 +616,213 @@ class Dashboard(ctk.CTkToplevel):
 
         if respuesta:
             self.ventana_login.destroy()
-            
+
+    def crear_resumen_operativo(self):
+
+        exito, resultado = (
+            TicketController.obtener_resumen_dashboard(
+                self.usuario
+            )
+        )
+
+        if not exito:
+            print(
+                "Error cargando resumen operativo:",
+                resultado
+            )
+            return
+
+        contenedor = ctk.CTkFrame(
+            self.contenido,
+            fg_color="transparent"
+        )
+
+        contenedor.pack(
+            fill="both",
+            expand=True,
+            padx=40,
+            pady=(0, 35)
+        )
+
+        contenedor.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        contenedor.grid_columnconfigure(
+            1,
+            weight=2
+        )
+
+        # ==============================================
+        # CARGA POR TÉCNICO
+        # ==============================================
+
+        panel_tecnicos = ctk.CTkFrame(
+            contenedor,
+            fg_color="white",
+            corner_radius=12
+        )
+
+        panel_tecnicos.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 10)
+        )
+
+        ctk.CTkLabel(
+            panel_tecnicos,
+            text="Carga de trabajo por técnico",
+            font=("Arial", 18, "bold"),
+            text_color="#1F2937"
+        ).pack(
+            anchor="w",
+            padx=20,
+            pady=(20, 15)
+        )
+
+        carga = resultado["carga_tecnicos"]
+
+        if not carga:
+
+            ctk.CTkLabel(
+                panel_tecnicos,
+                text="No hay técnicos disponibles.",
+                text_color="#6B7280"
+            ).pack(
+                anchor="w",
+                padx=20,
+                pady=(0, 20)
+            )
+
+        else:
+
+            for tecnico in carga:
+
+                fila = ctk.CTkFrame(
+                    panel_tecnicos,
+                    fg_color="transparent"
+                )
+
+                fila.pack(
+                    fill="x",
+                    padx=20,
+                    pady=6
+                )
+
+                ctk.CTkLabel(
+                    fila,
+                    text=tecnico["tecnico"],
+                    font=("Arial", 13),
+                    text_color="#374151"
+                ).pack(
+                    side="left"
+                )
+
+                ctk.CTkLabel(
+                    fila,
+                    text=str(tecnico["cantidad"]),
+                    font=("Arial", 13, "bold"),
+                    text_color="#1565C0"
+                ).pack(
+                    side="right"
+                )
+
+        # ==============================================
+        # TICKETS RECIENTES
+        # ==============================================
+
+        panel_tickets = ctk.CTkFrame(
+            contenedor,
+            fg_color="white",
+            corner_radius=12
+        )
+
+        panel_tickets.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(10, 0)
+        )
+
+        ctk.CTkLabel(
+            panel_tickets,
+            text="Tickets recientes",
+            font=("Arial", 18, "bold"),
+            text_color="#1F2937"
+        ).pack(
+            anchor="w",
+            padx=20,
+            pady=(20, 15)
+        )
+
+        tickets = resultado["tickets_recientes"]
+
+        if not tickets:
+
+            ctk.CTkLabel(
+                panel_tickets,
+                text="No hay tickets registrados.",
+                text_color="#6B7280"
+            ).pack(
+                anchor="w",
+                padx=20,
+                pady=(0, 20)
+            )
+
+            return
+
+        for ticket in tickets:
+
+            fecha = ticket["fecha_creacion"]
+
+            fecha_texto = (
+                fecha.strftime("%d/%m/%Y %H:%M")
+                if fecha
+                else ""
+            )
+
+            tarjeta = ctk.CTkFrame(
+                panel_tickets,
+                fg_color="#F9FAFB",
+                corner_radius=8
+            )
+
+            tarjeta.pack(
+                fill="x",
+                padx=20,
+                pady=5
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=(
+                    f"{ticket['folio']} - "
+                    f"{ticket['titulo']}"
+                ),
+                font=("Arial", 13, "bold"),
+                text_color="#1F2937",
+                anchor="w"
+            ).pack(
+                fill="x",
+                padx=12,
+                pady=(10, 2)
+            )
+
+            ctk.CTkLabel(
+                tarjeta,
+                text=(
+                    f"{ticket['estado']} | "
+                    f"{ticket['prioridad']} | "
+                    f"{ticket['tecnico']} | "
+                    f"{fecha_texto}"
+                ),
+                font=("Arial", 11),
+                text_color="#6B7280",
+                anchor="w"
+            ).pack(
+                fill="x",
+                padx=12,
+                pady=(0, 10)
+            )        
