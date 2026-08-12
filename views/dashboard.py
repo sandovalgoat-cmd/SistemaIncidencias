@@ -6,7 +6,33 @@ from views.usuarios import VistaUsuarios
 from views.nuevo_ticket import VistaNuevoTicket
 from views.tickets import VistaTickets
 from views.reportes import VistaReportes
+
 from controllers.ticket_controller import TicketController
+
+from config.estilos import (
+    COLOR_PRIMARIO,
+    COLOR_PRIMARIO_OSCURO,
+    COLOR_PRIMARIO_HOVER,
+    COLOR_SIDEBAR,
+    COLOR_SIDEBAR_HOVER,
+    COLOR_TOPBAR,
+    COLOR_TOPBAR_HOVER,
+    COLOR_FONDO,
+    COLOR_PANEL,
+    COLOR_TEXTO,
+    COLOR_TEXTO_SECUNDARIO,
+    COLOR_ERROR,
+    COLOR_ERROR_HOVER,
+    COLOR_NEUTRO,
+    FUENTE_TITULO,
+    FUENTE_SUBTITULO,
+    FUENTE_MENU,
+    FUENTE_MENU_TITULO,
+    FUENTE_NUMERO_TARJETA,
+    ANCHO_SIDEBAR,
+    ALTO_BOTON,
+    RADIO_TARJETA
+)
 
 class Dashboard(ctk.CTkToplevel):
 
@@ -18,8 +44,8 @@ class Dashboard(ctk.CTkToplevel):
         self.usuario = usuario
 
         self.title("Sistema de Atención de Incidencias")
-        self.geometry("1200x700")
-        self.minsize(1000, 600)
+        self.geometry("1350x780")
+        self.minsize(1100, 650)
 
         # Al cerrar la ventana desde la X
         self.protocol("WM_DELETE_WINDOW", self.cerrar_sistema)
@@ -31,8 +57,33 @@ class Dashboard(ctk.CTkToplevel):
 
     def crear_interfaz(self):
 
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        # ==============================================
+        # CONFIGURACIÓN GENERAL
+        # ==============================================
+
+        self.configure(
+            fg_color=COLOR_FONDO
+        )
+
+        self.grid_columnconfigure(
+            0,
+            weight=0
+        )
+
+        self.grid_columnconfigure(
+            1,
+            weight=1
+        )
+
+        self.grid_rowconfigure(
+            0,
+            weight=0
+        )
+
+        self.grid_rowconfigure(
+            1,
+            weight=1
+        )
 
         # ==============================================
         # MENÚ LATERAL
@@ -40,111 +91,195 @@ class Dashboard(ctk.CTkToplevel):
 
         self.menu_lateral = ctk.CTkFrame(
             self,
-            width=250,
+            width=ANCHO_SIDEBAR,
             corner_radius=0,
-            fg_color="#1565C0"
+            fg_color=COLOR_SIDEBAR
         )
 
         self.menu_lateral.grid(
             row=0,
             column=0,
+            rowspan=2,
             sticky="nsew"
         )
 
-        self.menu_lateral.grid_propagate(False)
-
-        titulo = ctk.CTkLabel(
-            self.menu_lateral,
-            text="Sistema de\nIncidencias",
-            font=("Arial", 25, "bold"),
-            text_color="white"
+        self.menu_lateral.grid_propagate(
+            False
         )
 
-        titulo.pack(pady=(30, 10))
+        # ==============================================
+        # LOGO / NOMBRE DEL SISTEMA
+        # ==============================================
+
+        ctk.CTkLabel(
+            self.menu_lateral,
+            text="Sistema de\nIncidencias",
+            font=FUENTE_MENU_TITULO,
+            text_color="white",
+            justify="left"
+        ).pack(
+            anchor="w",
+            padx=22,
+            pady=(28, 10)
+        )
+
+        # ==============================================
+        # USUARIO
+        # ==============================================
 
         nombre_completo = (
             f"{self.usuario['nombre']} "
             f"{self.usuario['apellido']}"
         )
 
-        etiqueta_usuario = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.menu_lateral,
             text=nombre_completo,
-            font=("Arial", 16, "bold"),
+            font=("Arial", 15, "bold"),
             text_color="white"
+        ).pack(
+            anchor="w",
+            padx=22,
+            pady=(18, 2)
         )
 
-        etiqueta_usuario.pack(pady=(15, 2))
-
-        etiqueta_rol = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.menu_lateral,
             text=self.usuario["rol"],
-            font=("Arial", 13),
-            text_color="#DCEBFA"
+            font=("Arial", 12),
+            text_color="#CBD5E1"
+        ).pack(
+            anchor="w",
+            padx=22,
+            pady=(0, 25)
         )
 
-        etiqueta_rol.pack(pady=(0, 25))
+        # Línea separadora
+        ctk.CTkFrame(
+            self.menu_lateral,
+            height=1,
+            fg_color="#475569"
+        ).pack(
+            fill="x",
+            padx=18,
+            pady=(0, 15)
+        )
 
-        # Botón disponible para todos
+        # ==============================================
+        # OPCIONES DEL MENÚ
+        # ==============================================
+
         self.crear_boton_menu(
             "Inicio",
             self.mostrar_inicio
         )
 
-        # Crear opciones según el rol
         self.crear_menu_por_rol()
 
-        # Botón cerrar sesión
+        # ==============================================
+        # CERRAR SESIÓN
+        # ==============================================
+
         boton_salir = ctk.CTkButton(
             self.menu_lateral,
             text="Cerrar sesión",
-            height=42,
-            fg_color="#C62828",
-            hover_color="#B71C1C",
+            height=ALTO_BOTON,
+            fg_color=COLOR_ERROR,
+            hover_color=COLOR_ERROR_HOVER,
+            text_color="white",
+            font=FUENTE_MENU,
             command=self.cerrar_sesion
         )
 
         boton_salir.pack(
             side="bottom",
             fill="x",
-            padx=20,
-            pady=25
+            padx=18,
+            pady=22
         )
 
         # ==============================================
-        # ÁREA DE CONTENIDO PRINCIPAL
+        # BARRA SUPERIOR
+        # ==============================================
+
+        self.barra_superior = ctk.CTkFrame(
+            self,
+            height=60,
+            corner_radius=0,
+            fg_color=COLOR_TOPBAR
+        )
+
+        self.barra_superior.grid(
+            row=0,
+            column=1,
+            sticky="ew"
+        )
+
+        self.barra_superior.grid_propagate(
+            False
+        )
+
+        # Nombre de sección / aplicación
+        ctk.CTkLabel(
+            self.barra_superior,
+            text="Sistema de Atención de Incidencias",
+            font=("Arial", 18, "bold"),
+            text_color="white"
+        ).pack(
+            side="left",
+            padx=25
+        )
+
+        # Usuario en esquina derecha
+        ctk.CTkLabel(
+            self.barra_superior,
+            text=nombre_completo,
+            font=("Arial", 13),
+            text_color="white"
+        ).pack(
+            side="right",
+            padx=25
+        )
+
+        # ==============================================
+        # ÁREA PRINCIPAL
         # ==============================================
 
         self.contenido = ctk.CTkFrame(
             self,
             corner_radius=0,
-            fg_color="#F3F6F9"
+            fg_color=COLOR_FONDO
         )
 
         self.contenido.grid(
-            row=0,
+            row=1,
             column=1,
             sticky="nsew"
         )
 
-    def crear_boton_menu(self, texto, comando):
+    def crear_boton_menu(
+        self,
+        texto,
+        comando
+    ):
 
         boton = ctk.CTkButton(
             self.menu_lateral,
             text=texto,
-            height=42,
+            height=ALTO_BOTON,
             anchor="w",
             fg_color="transparent",
-            hover_color="#0D47A1",
+            hover_color=COLOR_SIDEBAR_HOVER,
             text_color="white",
-            font=("Arial", 15),
+            font=FUENTE_MENU,
+            corner_radius=6,
             command=comando
         )
 
         boton.pack(
             fill="x",
-            padx=15,
-            pady=4
+            padx=12,
+            pady=3
         )
 
     def crear_menu_por_rol(self):
@@ -250,56 +385,63 @@ class Dashboard(ctk.CTkToplevel):
         for widget in self.contenido.winfo_children():
             widget.destroy()
 
-    def crear_titulo(self, texto):
+    def crear_titulo(
+        self,
+        texto
+    ):
 
         titulo = ctk.CTkLabel(
             self.contenido,
             text=texto,
-            font=("Arial", 30, "bold"),
-            text_color="#1F2937"
+            font=FUENTE_TITULO,
+            text_color=COLOR_TEXTO
         )
 
         titulo.pack(
             anchor="w",
-            padx=40,
-            pady=(35, 20)
+            padx=35,
+            pady=(30, 15)
         )
 
     def mostrar_inicio(self):
 
         self.limpiar_contenido()
-        self.crear_titulo("Panel principal")
+
+        self.crear_titulo(
+            "Panel principal"
+        )
 
         bienvenida = ctk.CTkLabel(
             self.contenido,
             text=(
-                f"Bienvenido, {self.usuario['nombre']} "
+                f"Bienvenido, "
+                f"{self.usuario['nombre']} "
                 f"{self.usuario['apellido']}"
             ),
-            font=("Arial", 22),
-            text_color="#374151"
+            font=FUENTE_SUBTITULO,
+            text_color=COLOR_TEXTO
         )
 
         bienvenida.pack(
             anchor="w",
-            padx=40,
-            pady=10
+            padx=35,
+            pady=(0, 4)
         )
 
         descripcion = ctk.CTkLabel(
             self.contenido,
             text=(
-                "Desde este panel puedes acceder a las funciones "
-                "disponibles según tu rol."
+                "Resumen general de la actividad "
+                "del sistema."
             ),
-            font=("Arial", 15),
-            text_color="#6B7280"
+            font=("Arial", 14),
+            text_color=COLOR_TEXTO_SECUNDARIO
         )
 
         descripcion.pack(
             anchor="w",
-            padx=40,
-            pady=5
+            padx=35,
+            pady=(0, 10)
         )
 
         self.crear_tarjetas_inicio()
@@ -469,9 +611,11 @@ class Dashboard(ctk.CTkToplevel):
 
             tarjeta = ctk.CTkFrame(
                 contenedor,
-                height=130,
-                corner_radius=12,
-                fg_color="white"
+                height=120,
+                corner_radius=RADIO_TARJETA,
+                fg_color=COLOR_PANEL,
+                border_width=1,
+                border_color="#E5E7EB"
             )
 
             tarjeta.grid(
@@ -484,24 +628,24 @@ class Dashboard(ctk.CTkToplevel):
 
             etiqueta = ctk.CTkLabel(
                 tarjeta,
-                text=datos[0],
-                font=("Arial", 15),
-                text_color="#6B7280"
+                text=str(datos[0]),
+                font=("Arial", 13),
+                text_color=COLOR_TEXTO_SECUNDARIO
             )
 
             etiqueta.pack(
-                pady=(25, 5)
+                pady=(22, 5)
             )
 
             cantidad = ctk.CTkLabel(
                 tarjeta,
                 text=str(datos[1]),
-                font=("Arial", 32, "bold"),
-                text_color="#1565C0"
+                font=FUENTE_NUMERO_TARJETA,
+                text_color=COLOR_PRIMARIO_OSCURO
             )
 
             cantidad.pack(
-                pady=(0, 20)
+                pady=(0, 18)
             )
 
     def mostrar_usuarios(self):

@@ -4,6 +4,23 @@ from tkinter import ttk, messagebox
 from controllers.ticket_controller import TicketController
 from views.detalle_ticket import VistaDetalleTicket
 
+from config.estilos import (
+    COLOR_PRIMARIO,
+    COLOR_PRIMARIO_OSCURO,
+    COLOR_PRIMARIO_HOVER,
+    COLOR_FONDO,
+    COLOR_PANEL,
+    COLOR_TEXTO,
+    COLOR_TEXTO_SECUNDARIO,
+    COLOR_BORDE,
+    FUENTE_TITULO,
+    FUENTE_NORMAL,
+    ALTO_BOTON,
+    RADIO_PANEL,
+    obtener_color_prioridad,
+    obtener_color_estado
+)
+
 
 
 class VistaTickets(ctk.CTkFrame):
@@ -56,10 +73,12 @@ class VistaTickets(ctk.CTkFrame):
         )
 
     def crear_interfaz(self):
+
         encabezado = ctk.CTkFrame(
             self,
             fg_color="transparent"
         )
+
         encabezado.pack(
             fill="x",
             padx=30,
@@ -69,39 +88,48 @@ class VistaTickets(ctk.CTkFrame):
         ctk.CTkLabel(
             encabezado,
             text=self.obtener_titulo(),
-            font=("Arial", 28, "bold"),
-            text_color="#1F2937"
-        ).pack(side="left")
+            font=FUENTE_TITULO,
+            text_color=COLOR_TEXTO
+        ).pack(
+            side="left"
+        )
 
         ctk.CTkButton(
             encabezado,
             text="Actualizar",
-            width=130,
-            height=40,
-            fg_color="#4B5563",
-            hover_color="#374151",
+            width=150,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.cargar_tickets
-        ).pack(side="right")
+        ).pack(
+            side="right"
+        )
 
         filtros = ctk.CTkFrame(
             self,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
+
         filtros.pack(
             fill="x",
             padx=30,
-            pady=10
+            pady=(0, 15)
         )
+
 
         self.entrada_busqueda = ctk.CTkEntry(
             filtros,
             height=40,
             placeholder_text=(
-                "Buscar por folio, título, usuario, técnico, "
-                "categoría, estado o prioridad"
+                "Buscar por folio, título, usuario, "
+                "técnico, categoría, estado o prioridad"
             )
         )
+
         self.entrada_busqueda.pack(
             side="left",
             fill="x",
@@ -112,7 +140,8 @@ class VistaTickets(ctk.CTkFrame):
 
         self.entrada_busqueda.bind(
             "<KeyRelease>",
-            lambda evento: self.mostrar_tickets_filtrados()
+            lambda evento:
+                self.mostrar_tickets_filtrados()
         )
 
         self.combo_estado = ctk.CTkComboBox(
@@ -120,41 +149,71 @@ class VistaTickets(ctk.CTkFrame):
             width=170,
             height=40,
             state="readonly",
-            values=["Todos"],
-            command=lambda opcion: self.mostrar_tickets_filtrados()
+            values=[
+                "Todos"
+            ],
+            command=lambda opcion:
+                self.mostrar_tickets_filtrados()
         )
+
         self.combo_estado.pack(
             side="left",
             padx=10,
             pady=15
         )
-        self.combo_estado.set("Todos")
+
+        self.combo_estado.set(
+            "Todos"
+        )
+
 
         self.combo_prioridad = ctk.CTkComboBox(
             filtros,
             width=150,
             height=40,
             state="readonly",
-            values=["Todas"],
-            command=lambda opcion: self.mostrar_tickets_filtrados()
+            values=[
+                "Todas"
+            ],
+            command=lambda opcion:
+                self.mostrar_tickets_filtrados()
         )
+
         self.combo_prioridad.pack(
             side="left",
             padx=(10, 15),
             pady=15
         )
-        self.combo_prioridad.set("Todas")
+
+        self.combo_prioridad.set(
+            "Todas"
+        )
+
 
         tabla_frame = ctk.CTkFrame(
             self,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
+
         tabla_frame.pack(
             fill="both",
             expand=True,
             padx=30,
-            pady=(10, 15)
+            pady=(0, 15)
+        )
+
+        # Permitir que la tabla crezca
+        tabla_frame.grid_rowconfigure(
+            0,
+            weight=1
+        )
+
+        tabla_frame.grid_columnconfigure(
+            0,
+            weight=1
         )
 
         columnas = (
@@ -167,7 +226,38 @@ class VistaTickets(ctk.CTkFrame):
             "tecnico",
             "fecha"
         )
+    
+        estilo = ttk.Style()
 
+        estilo.theme_use("default")
+
+        estilo.configure(
+            "Tickets.Treeview",
+            background=COLOR_PANEL,
+            foreground=COLOR_TEXTO,
+            rowheight=38,
+            fieldbackground=COLOR_PANEL,
+            borderwidth=0,
+            font=("Arial", 11)
+        )
+
+        estilo.configure(
+            "Tickets.Treeview.Heading",
+            background="#EAF2F8",
+            foreground=COLOR_TEXTO,
+            relief="flat",
+            font=("Arial", 11, "bold")
+        )
+
+        estilo.map(
+            "Tickets.Treeview",
+            background=[
+                ("selected", COLOR_PRIMARIO)
+            ],
+            foreground=[
+                ("selected", "white")
+            ]
+        )
         self.tabla = ttk.Treeview(
             tabla_frame,
             columns=columnas,
@@ -175,14 +265,87 @@ class VistaTickets(ctk.CTkFrame):
             style="Tickets.Treeview"
         )
 
-        self.tabla.heading("folio", text="Folio")
-        self.tabla.heading("titulo", text="Título")
-        self.tabla.heading("reportado_por", text="Reportado por")
-        self.tabla.heading("categoria", text="Categoría")
-        self.tabla.heading("prioridad", text="Prioridad")
-        self.tabla.heading("estado", text="Estado")
-        self.tabla.heading("tecnico", text="Técnico")
-        self.tabla.heading("fecha", text="Fecha")
+        self.tabla.tag_configure(
+            "urgente",
+            background="#FDE2E2",
+            foreground="#991B1B"
+        )
+
+        self.tabla.tag_configure(
+            "cerrado",
+            background="#F3F4F6",
+            foreground="#9CA3AF"
+        )
+
+        self.tabla.tag_configure(
+            "solucionado",
+            background="#DCFCE7",
+            foreground="#166534"
+        )
+
+        self.tabla.tag_configure(
+            "en_proceso",
+            background="#FEF3C7",
+            foreground="#92400E"
+        )
+
+        self.tabla.tag_configure(
+            "en_espera",
+            background="#FFEDD5",
+            foreground="#9A3412"
+        )
+
+        self.tabla.tag_configure(
+            "nuevo",
+            background="#EFF6FF",
+            foreground="#1E40AF"
+        )
+
+        self.tabla.tag_configure(
+            "asignado",
+            background="#EEF2FF",
+            foreground="#3730A3"
+        )
+
+        self.tabla.heading(
+            "folio",
+            text="Folio"
+        )
+
+        self.tabla.heading(
+            "titulo",
+            text="Título"
+        )
+
+        self.tabla.heading(
+            "reportado_por",
+            text="Reportado por"
+        )
+
+        self.tabla.heading(
+            "categoria",
+            text="Categoría"
+        )
+
+        self.tabla.heading(
+            "prioridad",
+            text="Prioridad"
+        )
+
+        self.tabla.heading(
+            "estado",
+            text="Estado"
+        )
+
+        self.tabla.heading(
+            "tecnico",
+            text="Técnico"
+        )
+
+        self.tabla.heading(
+            "fecha",
+            text="Fecha"
+        )
 
         self.tabla.column(
             "folio",
@@ -190,44 +353,52 @@ class VistaTickets(ctk.CTkFrame):
             minwidth=130,
             anchor="center"
         )
+
         self.tabla.column(
             "titulo",
             width=250,
             minwidth=180
         )
+
         self.tabla.column(
             "reportado_por",
             width=180,
             minwidth=150
         )
+
         self.tabla.column(
             "categoria",
             width=130,
             minwidth=110
         )
+
         self.tabla.column(
             "prioridad",
             width=100,
             minwidth=90,
             anchor="center"
         )
+
         self.tabla.column(
             "estado",
             width=120,
             minwidth=110,
             anchor="center"
         )
+
         self.tabla.column(
             "tecnico",
             width=170,
             minwidth=140
         )
+
         self.tabla.column(
             "fecha",
             width=145,
             minwidth=130,
             anchor="center"
         )
+
 
         scroll_vertical = ttk.Scrollbar(
             tabla_frame,
@@ -270,9 +441,6 @@ class VistaTickets(ctk.CTkFrame):
             pady=(0, 15)
         )
 
-        tabla_frame.grid_rowconfigure(0, weight=1)
-        tabla_frame.grid_columnconfigure(0, weight=1)
-
         self.tabla.bind(
             "<<TreeviewSelect>>",
             self.seleccionar_ticket
@@ -280,13 +448,16 @@ class VistaTickets(ctk.CTkFrame):
 
         self.tabla.bind(
             "<Double-1>",
-            lambda evento: self.ver_detalle()
+            lambda evento:
+                self.ver_detalle()
         )
+
 
         acciones = ctk.CTkFrame(
             self,
             fg_color="transparent"
         )
+
         acciones.pack(
             fill="x",
             padx=30,
@@ -296,18 +467,25 @@ class VistaTickets(ctk.CTkFrame):
         self.etiqueta_total = ctk.CTkLabel(
             acciones,
             text="0 tickets",
-            font=("Arial", 14),
-            text_color="#6B7280"
+            font=("Arial", 13),
+            text_color=COLOR_TEXTO_SECUNDARIO
         )
-        self.etiqueta_total.pack(side="left")
+
+        self.etiqueta_total.pack(
+            side="left"
+        )
 
         ctk.CTkButton(
             acciones,
             text="Ver detalle",
             width=150,
-            height=40,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.ver_detalle
-        ).pack(side="right")
+        ).pack(
+            side="right"
+        )
 
     def obtener_titulo(self):
         rol = self.usuario_sesion["rol"]
@@ -415,6 +593,30 @@ class VistaTickets(ctk.CTkFrame):
                 else ""
             )
 
+            tag = None
+
+            if ticket["prioridad"] == "Urgente":
+                tag = "urgente"
+
+            elif ticket["estado"] == "Cerrado":
+                tag = "cerrado"
+
+            elif ticket["estado"] == "Solucionado":
+                tag = "solucionado"
+
+            elif ticket["estado"] == "En Proceso":
+                tag = "en_proceso"
+
+            elif ticket["estado"] == "En Espera":
+                tag = "en_espera"
+
+            elif ticket["estado"] == "Nuevo":
+                tag = "nuevo"
+
+            elif ticket["estado"] == "Asignado":
+                tag = "asignado"
+
+
             self.tabla.insert(
                 "",
                 "end",
@@ -428,7 +630,8 @@ class VistaTickets(ctk.CTkFrame):
                     ticket["estado"],
                     ticket["tecnico"],
                     fecha_texto
-                )
+                ),
+                tags=(tag,) if tag else ()
             )
 
             cantidad += 1
