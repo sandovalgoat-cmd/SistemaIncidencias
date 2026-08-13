@@ -1454,7 +1454,8 @@ class VistaDetalleTicket(ctk.CTkFrame):
 
         exito, resultado = (
             TicketController.listar_historial(
-                id_ticket=self.ticket["id_ticket"]
+                id_ticket=self.ticket["id_ticket"],
+                usuario_sesion=self.usuario_sesion
             )
         )
 

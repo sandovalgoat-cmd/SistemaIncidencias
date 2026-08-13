@@ -4,13 +4,32 @@ from tkinter import ttk, messagebox
 from config.database import conectar
 from controllers.usuario_controller import UsuarioController
 
+from config.estilos import (
+    COLOR_PRIMARIO,
+    COLOR_PRIMARIO_OSCURO,
+    COLOR_PRIMARIO_HOVER,
+    COLOR_FONDO,
+    COLOR_PANEL,
+    COLOR_TEXTO,
+    COLOR_TEXTO_SECUNDARIO,
+    COLOR_BORDE,
+    COLOR_EXITO,
+    COLOR_EXITO_HOVER,
+    COLOR_ADVERTENCIA,
+    COLOR_ADVERTENCIA_HOVER,
+    COLOR_NEUTRO,
+    COLOR_NEUTRO_HOVER,
+    FUENTE_TITULO,
+    ALTO_BOTON,
+    RADIO_PANEL
+)
 
 class VistaUsuarios(ctk.CTkFrame):
 
     def __init__(self, master, usuario_sesion):
         super().__init__(
             master,
-            fg_color="#F3F6F9",
+            fg_color=COLOR_FONDO,
             corner_radius=0
         )
 
@@ -28,56 +47,103 @@ class VistaUsuarios(ctk.CTkFrame):
         self.cargar_usuarios()
 
     def configurar_estilos(self):
+
         estilo = ttk.Style()
-        estilo.theme_use("clam")
+
+        estilo.theme_use("default")
 
         estilo.configure(
             "Usuarios.Treeview",
-            rowheight=35,
-            font=("Arial", 11),
-            background="white",
-            fieldbackground="white"
+            background=COLOR_PANEL,
+            foreground=COLOR_TEXTO,
+            rowheight=38,
+            fieldbackground=COLOR_PANEL,
+            borderwidth=0,
+            font=("Arial", 11)
         )
 
         estilo.configure(
             "Usuarios.Treeview.Heading",
+            background="#EAF2F8",
+            foreground=COLOR_TEXTO,
+            relief="flat",
             font=("Arial", 11, "bold")
         )
 
+        estilo.map(
+            "Usuarios.Treeview",
+            background=[
+                ("selected", COLOR_PRIMARIO)
+            ],
+            foreground=[
+                ("selected", "white")
+            ]
+        )
+
     def crear_interfaz(self):
+
+    # ==============================================
+    # ENCABEZADO
+    # ==============================================
+
         encabezado = ctk.CTkFrame(
             self,
             fg_color="transparent"
         )
-        encabezado.pack(fill="x", padx=30, pady=(25, 10))
+
+        encabezado.pack(
+            fill="x",
+            padx=30,
+            pady=(25, 10)
+        )
 
         ctk.CTkLabel(
             encabezado,
             text="Administración de usuarios",
-            font=("Arial", 28, "bold"),
-            text_color="#1F2937"
-        ).pack(side="left")
+            font=FUENTE_TITULO,
+            text_color=COLOR_TEXTO
+        ).pack(
+            side="left"
+        )
 
         ctk.CTkButton(
             encabezado,
-            text="Nuevo usuario",
-            width=150,
-            height=40,
+            text="+ Nuevo usuario",
+            width=160,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.abrir_formulario_nuevo
-        ).pack(side="right")
+        ).pack(
+            side="right"
+        )
+
+        # ==============================================
+        # BUSCADOR
+        # ==============================================
 
         buscador_frame = ctk.CTkFrame(
             self,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
-        buscador_frame.pack(fill="x", padx=30, pady=10)
+
+        buscador_frame.pack(
+            fill="x",
+            padx=30,
+            pady=(0, 15)
+        )
 
         self.entrada_busqueda = ctk.CTkEntry(
             buscador_frame,
-            placeholder_text="Buscar por nombre, usuario, rol o área",
+            placeholder_text=(
+                "Buscar por nombre, usuario, rol o área..."
+            ),
             height=40
         )
+
         self.entrada_busqueda.pack(
             side="left",
             fill="x",
@@ -88,19 +154,37 @@ class VistaUsuarios(ctk.CTkFrame):
 
         self.entrada_busqueda.bind(
             "<KeyRelease>",
-            lambda evento: self.cargar_usuarios()
+            lambda evento:
+                self.cargar_usuarios()
         )
+
+        # ==============================================
+        # TABLA
+        # ==============================================
 
         tabla_frame = ctk.CTkFrame(
             self,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
+
         tabla_frame.pack(
             fill="both",
             expand=True,
             padx=30,
-            pady=(10, 15)
+            pady=(0, 15)
+        )
+
+        tabla_frame.grid_rowconfigure(
+            0,
+            weight=1
+        )
+
+        tabla_frame.grid_columnconfigure(
+            0,
+            weight=1
         )
 
         columnas = (
@@ -119,19 +203,101 @@ class VistaUsuarios(ctk.CTkFrame):
             style="Usuarios.Treeview"
         )
 
-        self.tabla.heading("id", text="ID")
-        self.tabla.heading("nombre", text="Nombre completo")
-        self.tabla.heading("usuario", text="Usuario")
-        self.tabla.heading("rol", text="Rol")
-        self.tabla.heading("area", text="Área")
-        self.tabla.heading("estado", text="Estado")
+        # ==============================================
+        # ESTILOS DE ESTADO
+        # ==============================================
 
-        self.tabla.column("id", width=60, anchor="center")
-        self.tabla.column("nombre", width=230)
-        self.tabla.column("usuario", width=140)
-        self.tabla.column("rol", width=140)
-        self.tabla.column("area", width=160)
-        self.tabla.column("estado", width=100, anchor="center")
+        self.tabla.tag_configure(
+            "activo",
+            background="#F0FDF4",
+            foreground="#166534"
+        )
+
+        self.tabla.tag_configure(
+            "inactivo",
+            background="#F3F4F6",
+            foreground="#9CA3AF"
+        )
+
+        # ==============================================
+        # ENCABEZADOS
+        # ==============================================
+
+        self.tabla.heading(
+            "id",
+            text="ID"
+        )
+
+        self.tabla.heading(
+            "nombre",
+            text="Nombre completo"
+        )
+
+        self.tabla.heading(
+            "usuario",
+            text="Usuario"
+        )
+
+        self.tabla.heading(
+            "rol",
+            text="Rol"
+        )
+
+        self.tabla.heading(
+            "area",
+            text="Área"
+        )
+
+        self.tabla.heading(
+            "estado",
+            text="Estado"
+        )
+
+        # ==============================================
+        # COLUMNAS
+        # ==============================================
+
+        self.tabla.column(
+            "id",
+            width=60,
+            minwidth=50,
+            anchor="center"
+        )
+
+        self.tabla.column(
+            "nombre",
+            width=250,
+            minwidth=180
+        )
+
+        self.tabla.column(
+            "usuario",
+            width=150,
+            minwidth=120
+        )
+
+        self.tabla.column(
+            "rol",
+            width=150,
+            minwidth=120
+        )
+
+        self.tabla.column(
+            "area",
+            width=170,
+            minwidth=130
+        )
+
+        self.tabla.column(
+            "estado",
+            width=110,
+            minwidth=90,
+            anchor="center"
+        )
+
+        # ==============================================
+        # SCROLL
+        # ==============================================
 
         scroll = ttk.Scrollbar(
             tabla_frame,
@@ -139,19 +305,22 @@ class VistaUsuarios(ctk.CTkFrame):
             command=self.tabla.yview
         )
 
-        self.tabla.configure(yscrollcommand=scroll.set)
+        self.tabla.configure(
+            yscrollcommand=scroll.set
+        )
 
-        self.tabla.pack(
-            side="left",
-            fill="both",
-            expand=True,
+        self.tabla.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
             padx=(15, 0),
             pady=15
         )
 
-        scroll.pack(
-            side="right",
-            fill="y",
+        scroll.grid(
+            row=0,
+            column=1,
+            sticky="ns",
             padx=(0, 15),
             pady=15
         )
@@ -161,45 +330,71 @@ class VistaUsuarios(ctk.CTkFrame):
             self.seleccionar_usuario
         )
 
+        # ==============================================
+        # ACCIONES
+        # ==============================================
+
         acciones = ctk.CTkFrame(
             self,
             fg_color="transparent"
         )
-        acciones.pack(fill="x", padx=30, pady=(0, 25))
+
+        acciones.pack(
+            fill="x",
+            padx=30,
+            pady=(0, 25)
+        )
 
         ctk.CTkButton(
             acciones,
             text="Editar",
             width=130,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.abrir_formulario_editar
-        ).pack(side="left", padx=(0, 10))
+        ).pack(
+            side="left",
+            padx=(0, 8)
+        )
 
         ctk.CTkButton(
             acciones,
             text="Cambiar contraseña",
             width=170,
-            fg_color="#6D28D9",
-            hover_color="#5B21B6",
+            height=ALTO_BOTON,
+            fg_color=COLOR_NEUTRO,
+            hover_color=COLOR_NEUTRO_HOVER,
             command=self.abrir_cambio_password
-        ).pack(side="left", padx=10)
+        ).pack(
+            side="left",
+            padx=8
+        )
 
         ctk.CTkButton(
             acciones,
             text="Activar / Desactivar",
             width=170,
-            fg_color="#D97706",
-            hover_color="#B45309",
+            height=ALTO_BOTON,
+            fg_color=COLOR_ADVERTENCIA,
+            hover_color=COLOR_ADVERTENCIA_HOVER,
             command=self.cambiar_estado
-        ).pack(side="left", padx=10)
+        ).pack(
+            side="left",
+            padx=8
+        )
 
         ctk.CTkButton(
             acciones,
-            text="Actualizar lista",
-            width=150,
-            fg_color="#4B5563",
-            hover_color="#374151",
+            text="Actualizar",
+            width=140,
+            height=ALTO_BOTON,
+            fg_color=COLOR_NEUTRO,
+            hover_color=COLOR_NEUTRO_HOVER,
             command=self.cargar_usuarios
-        ).pack(side="right")
+        ).pack(
+            side="right"
+        )
 
     def cargar_catalogos(self):
         conexion = conectar()
@@ -276,6 +471,12 @@ class VistaUsuarios(ctk.CTkFrame):
                 else "Inactivo"
             )
 
+            tag_estado = (
+                "activo"
+                if usuario["estado"]
+                else "inactivo"
+            )
+
             self.tabla.insert(
                 "",
                 "end",
@@ -287,7 +488,7 @@ class VistaUsuarios(ctk.CTkFrame):
                     usuario["area"],
                     estado_texto
                 ),
-                tags=(str(usuario["id_usuario"]),)
+                tags=(tag_estado,)
             )
 
         self.usuario_seleccionado = None
@@ -525,42 +726,114 @@ class VistaUsuarios(ctk.CTkFrame):
         confirmar_password.pack(pady=10)
 
         def guardar_password():
-            if nueva_password.get() != confirmar_password.get():
-                messagebox.showerror(
-                    "Contraseñas",
+
+    # ==========================================
+    # OBTENER CONTRASEÑAS
+    # ==========================================
+
+            password = (
+                nueva_password
+                .get()
+                .strip()
+            )
+
+            confirmacion = (
+                confirmar_password
+                .get()
+                .strip()
+            )
+
+            # ==========================================
+            # VALIDAR CAMPOS VACÍOS
+            # ==========================================
+
+            if not password or not confirmacion:
+
+                messagebox.showwarning(
+                    "Contraseña",
+                    "Debe completar ambos campos.",
+                    parent=ventana
+                )
+
+                return
+
+            # ==========================================
+            # VALIDAR LONGITUD
+            # ==========================================
+
+            if len(password) < 6:
+
+                messagebox.showwarning(
+                    "Contraseña",
+                    "La contraseña debe tener al menos "
+                    "6 caracteres.",
+                    parent=ventana
+                )
+
+                return
+
+            # ==========================================
+            # VALIDAR COINCIDENCIA
+            # ==========================================
+
+            if password != confirmacion:
+
+                messagebox.showwarning(
+                    "Contraseña",
                     "Las contraseñas no coinciden.",
                     parent=ventana
                 )
+
                 return
 
-            exito, mensaje = UsuarioController.cambiar_password(
-                self.usuario_seleccionado["id_usuario"],
-                nueva_password.get()
+            # ==========================================
+            # CAMBIAR CONTRASEÑA
+            # ==========================================
+
+            exito, mensaje = (
+                UsuarioController.cambiar_password(
+                    self.usuario_seleccionado["id_usuario"],
+                    password
+                )
             )
 
+            # ==========================================
+            # RESULTADO
+            # ==========================================
+
             if exito:
+
                 messagebox.showinfo(
                     "Correcto",
                     mensaje,
                     parent=ventana
                 )
+
                 ventana.destroy()
 
             else:
+
                 messagebox.showerror(
                     "Error",
                     mensaje,
                     parent=ventana
                 )
+    # ==========================================
+    # BOTÓN GUARDAR CONTRASEÑA
+    # ==========================================
 
         ctk.CTkButton(
             ventana,
             text="Guardar contraseña",
             width=330,
             height=42,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=guardar_password
-        ).pack(pady=20)
-
+        ).pack(
+            pady=20
+        )
+        
     def cambiar_estado(self):
         if self.usuario_seleccionado is None:
             messagebox.showwarning(

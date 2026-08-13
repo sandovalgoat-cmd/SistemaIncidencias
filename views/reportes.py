@@ -5,6 +5,22 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 
 from controllers.ticket_controller import TicketController
+from config.estilos import (
+    COLOR_PRIMARIO,
+    COLOR_PRIMARIO_HOVER,
+    COLOR_FONDO,
+    COLOR_PANEL,
+    COLOR_TEXTO,
+    COLOR_TEXTO_SECUNDARIO,
+    COLOR_BORDE,
+    COLOR_NEUTRO,
+    COLOR_NEUTRO_HOVER,
+    FUENTE_TITULO,
+    FUENTE_NUMERO_TARJETA,
+    ALTO_BOTON,
+    RADIO_PANEL,
+    RADIO_TARJETA
+)
 
 
 class VistaReportes(ctk.CTkFrame):
@@ -12,7 +28,7 @@ class VistaReportes(ctk.CTkFrame):
     def __init__(self, master, usuario_sesion):
         super().__init__(
             master,
-            fg_color="#F3F6F9",
+            fg_color=COLOR_FONDO,
             corner_radius=0
         )
 
@@ -24,6 +40,10 @@ class VistaReportes(ctk.CTkFrame):
         self.cargar_reportes()
 
     def crear_interfaz(self):
+
+    # ==============================================
+    # ENCABEZADO
+    # ==============================================
 
         encabezado = ctk.CTkFrame(
             self,
@@ -39,45 +59,47 @@ class VistaReportes(ctk.CTkFrame):
         ctk.CTkLabel(
             encabezado,
             text="Reportes y métricas",
-            font=("Arial", 28, "bold"),
-            text_color="#1F2937"
-        ).pack(side="left")
+            font=FUENTE_TITULO,
+            text_color=COLOR_TEXTO
+        ).pack(
+            side="left"
+        )
 
         ctk.CTkButton(
             encabezado,
             text="Actualizar",
-            width=130,
-            height=40,
+            width=140,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.cargar_reportes
-        ).pack(side="right")
-
-        self.contenedor = ctk.CTkScrollableFrame(
-            self,
-            fg_color="transparent"
+        ).pack(
+            side="right"
         )
 
-        self.contenedor.pack(
-            fill="both",
-            expand=True,
-            padx=30,
-            pady=(10, 25)
-        )
+        # ==============================================
+        # FILTROS
+        # ==============================================
+
         filtros = ctk.CTkFrame(
             self,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
 
         filtros.pack(
             fill="x",
             padx=30,
-            pady=(5, 10)
+            pady=(0, 15)
         )
 
         ctk.CTkLabel(
             filtros,
             text="Fecha inicial",
-            font=("Arial", 13, "bold")
+            font=("Arial", 13, "bold"),
+            text_color=COLOR_TEXTO
         ).grid(
             row=0,
             column=0,
@@ -86,10 +108,23 @@ class VistaReportes(ctk.CTkFrame):
             sticky="w"
         )
 
+        ctk.CTkLabel(
+            filtros,
+            text="Fecha final",
+            font=("Arial", 13, "bold"),
+            text_color=COLOR_TEXTO
+        ).grid(
+            row=0,
+            column=1,
+            padx=10,
+            pady=(15, 5),
+            sticky="w"
+        )
+
         self.entrada_fecha_inicio = ctk.CTkEntry(
             filtros,
-            width=150,
-            height=38,
+            width=160,
+            height=40,
             placeholder_text="AAAA-MM-DD"
         )
 
@@ -102,16 +137,16 @@ class VistaReportes(ctk.CTkFrame):
 
         self.entrada_fecha_inicio.bind(
             "<Button-1>",
-            lambda event: self.abrir_calendario(
-                self.entrada_fecha_inicio
-            )
+            lambda event:
+                self.abrir_calendario(
+                    self.entrada_fecha_inicio
+                )
         )
-
 
         self.entrada_fecha_fin = ctk.CTkEntry(
             filtros,
-            width=150,
-            height=38,
+            width=160,
+            height=40,
             placeholder_text="AAAA-MM-DD"
         )
 
@@ -124,16 +159,19 @@ class VistaReportes(ctk.CTkFrame):
 
         self.entrada_fecha_fin.bind(
             "<Button-1>",
-            lambda event: self.abrir_calendario(
-                self.entrada_fecha_fin
-            )
+            lambda event:
+                self.abrir_calendario(
+                    self.entrada_fecha_fin
+                )
         )
 
         ctk.CTkButton(
             filtros,
             text="Aplicar filtros",
             width=140,
-            height=38,
+            height=ALTO_BOTON,
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_PRIMARIO_HOVER,
             command=self.aplicar_filtros
         ).grid(
             row=1,
@@ -146,15 +184,67 @@ class VistaReportes(ctk.CTkFrame):
             filtros,
             text="Limpiar",
             width=110,
-            height=38,
-            fg_color="#6B7280",
-            hover_color="#4B5563",
+            height=ALTO_BOTON,
+            fg_color=COLOR_NEUTRO,
+            hover_color=COLOR_NEUTRO_HOVER,
             command=self.limpiar_filtros
         ).grid(
             row=1,
             column=3,
             padx=(10, 20),
             pady=(0, 15)
+        )
+
+        # ==============================================
+        # ESTILO DE TABLAS
+        # ==============================================
+
+        estilo = ttk.Style()
+
+        estilo.theme_use("default")
+
+        estilo.configure(
+            "Reportes.Treeview",
+            background=COLOR_PANEL,
+            foreground=COLOR_TEXTO,
+            fieldbackground=COLOR_PANEL,
+            rowheight=36,
+            borderwidth=0,
+            font=("Arial", 11)
+        )
+
+        estilo.configure(
+            "Reportes.Treeview.Heading",
+            background="#EAF2F8",
+            foreground=COLOR_TEXTO,
+            relief="flat",
+            font=("Arial", 11, "bold")
+        )
+
+        estilo.map(
+            "Reportes.Treeview",
+            background=[
+                ("selected", COLOR_PRIMARIO)
+            ],
+            foreground=[
+                ("selected", "white")
+            ]
+        )
+
+        # ==============================================
+        # CONTENEDOR SCROLL
+        # ==============================================
+
+        self.contenedor = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent"
+        )
+
+        self.contenedor.pack(
+            fill="both",
+            expand=True,
+            padx=30,
+            pady=(0, 25)
         )
         
     def limpiar(self):
@@ -254,7 +344,7 @@ class VistaReportes(ctk.CTkFrame):
             self.contenedor,
             text="Resumen general",
             font=("Arial", 20, "bold"),
-            text_color="#1F2937"
+            text_color=COLOR_TEXTO
         ).pack(
             anchor="w",
             pady=(10, 15)
@@ -280,31 +370,40 @@ class VistaReportes(ctk.CTkFrame):
             ("Sin asignar", datos["sin_asignar"])
         ]
 
-        for indice, tarjeta in enumerate(tarjetas):
-
+        # 4 tarjetas por fila
+        for columna in range(4):
             frame.grid_columnconfigure(
-                indice,
+                columna,
                 weight=1
             )
 
+        for indice, tarjeta in enumerate(tarjetas):
+
+            fila = indice // 4
+            columna = indice % 4
+
             card = ctk.CTkFrame(
                 frame,
-                fg_color="white",
-                corner_radius=10
+                height=110,
+                fg_color=COLOR_PANEL,
+                corner_radius=RADIO_TARJETA,
+                border_width=1,
+                border_color=COLOR_BORDE
             )
 
             card.grid(
-                row=0,
-                column=indice,
+                row=fila,
+                column=columna,
                 sticky="nsew",
-                padx=5
+                padx=5,
+                pady=5
             )
 
             ctk.CTkLabel(
                 card,
                 text=tarjeta[0],
                 font=("Arial", 13),
-                text_color="#6B7280"
+                text_color=COLOR_TEXTO_SECUNDARIO
             ).pack(
                 pady=(18, 4)
             )
@@ -312,8 +411,8 @@ class VistaReportes(ctk.CTkFrame):
             ctk.CTkLabel(
                 card,
                 text=str(tarjeta[1]),
-                font=("Arial", 28, "bold"),
-                text_color="#1565C0"
+                font=FUENTE_NUMERO_TARJETA,
+                text_color=COLOR_PRIMARIO
             ).pack(
                 pady=(0, 18)
             )
@@ -328,7 +427,7 @@ class VistaReportes(ctk.CTkFrame):
             self.contenedor,
             text=titulo,
             font=("Arial", 19, "bold"),
-            text_color="#1F2937"
+            text_color=COLOR_TEXTO
         ).pack(
             anchor="w",
             pady=(15, 10)
@@ -336,8 +435,10 @@ class VistaReportes(ctk.CTkFrame):
 
         frame = ctk.CTkFrame(
             self.contenedor,
-            fg_color="white",
-            corner_radius=10
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_BORDE
         )
 
         frame.pack(
@@ -352,6 +453,7 @@ class VistaReportes(ctk.CTkFrame):
                 "cantidad"
             ),
             show="headings",
+            style="Reportes.Treeview",
             height=min(
                 max(len(datos), 3),
                 8
@@ -380,6 +482,7 @@ class VistaReportes(ctk.CTkFrame):
         )
 
         for fila in datos:
+
             tabla.insert(
                 "",
                 "end",
@@ -398,20 +501,74 @@ class VistaReportes(ctk.CTkFrame):
     def aplicar_filtros(self):
 
         fecha_inicio = (
-            self.entrada_fecha_inicio.get()
+            self.entrada_fecha_inicio
+            .get()
+            .strip()
         )
 
         fecha_fin = (
-            self.entrada_fecha_fin.get()
+            self.entrada_fecha_fin
+            .get()
+            .strip()
         )
 
-        if fecha_inicio > fecha_fin:
+        # ==========================================
+        # VALIDAR CAMPOS VACÍOS
+        # ==========================================
+
+        if not fecha_inicio or not fecha_fin:
+
+            messagebox.showwarning(
+                "Fechas",
+                "Seleccione la fecha inicial "
+                "y la fecha final."
+            )
+
+            return
+
+        # ==========================================
+        # VALIDAR FORMATO
+        # ==========================================
+
+        try:
+
+            inicio = datetime.strptime(
+                fecha_inicio,
+                "%Y-%m-%d"
+            )
+
+            fin = datetime.strptime(
+                fecha_fin,
+                "%Y-%m-%d"
+            )
+
+        except ValueError:
+
+            messagebox.showwarning(
+                "Fechas",
+                "Las fechas deben tener el formato "
+                "AAAA-MM-DD."
+            )
+
+            return
+
+        # ==========================================
+        # VALIDAR ORDEN
+        # ==========================================
+
+        if inicio > fin:
+
             messagebox.showwarning(
                 "Fechas",
                 "La fecha inicial no puede ser "
                 "mayor que la fecha final."
             )
+
             return
+
+        # ==========================================
+        # CARGAR REPORTE
+        # ==========================================
 
         self.cargar_reportes(
             fecha_inicio=fecha_inicio,
@@ -480,7 +637,7 @@ class VistaReportes(ctk.CTkFrame):
             self.contenedor,
             text="Métricas de tiempo",
             font=("Arial", 20, "bold"),
-            text_color="#1F2937"
+            text_color=COLOR_TEXTO
         ).pack(
             anchor="w",
             pady=(10, 15)
@@ -521,17 +678,21 @@ class VistaReportes(ctk.CTkFrame):
             )
         ]
 
-        for indice, metrica in enumerate(metricas):
+        for indice in range(4):
 
             frame.grid_columnconfigure(
                 indice,
                 weight=1
             )
 
+        for indice, metrica in enumerate(metricas):
+
             tarjeta = ctk.CTkFrame(
                 frame,
-                fg_color="white",
-                corner_radius=10
+                fg_color=COLOR_PANEL,
+                corner_radius=RADIO_TARJETA,
+                border_width=1,
+                border_color=COLOR_BORDE
             )
 
             tarjeta.grid(
@@ -545,7 +706,7 @@ class VistaReportes(ctk.CTkFrame):
                 tarjeta,
                 text=metrica[0],
                 font=("Arial", 13),
-                text_color="#6B7280"
+                text_color=COLOR_TEXTO_SECUNDARIO
             ).pack(
                 pady=(18, 4)
             )
@@ -554,7 +715,7 @@ class VistaReportes(ctk.CTkFrame):
                 tarjeta,
                 text=str(metrica[1]),
                 font=("Arial", 22, "bold"),
-                text_color="#1565C0"
+                text_color=COLOR_PRIMARIO
             ).pack(
                 pady=(0, 18)
             )

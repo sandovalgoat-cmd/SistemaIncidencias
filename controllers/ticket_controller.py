@@ -373,6 +373,24 @@ class TicketController:
                 "El comentario no puede estar vacío."
             )
 
+        # ==========================================
+        # PROTEGER NOTAS INTERNAS
+        # ==========================================
+
+        if (
+            not publico
+            and usuario_sesion["rol"]
+            not in (
+                "Administrador",
+                "EncargadoTI",
+                "Tecnico"
+            )
+        ):
+            return (
+                False,
+                "No tiene permisos para agregar notas internas."
+            )
+
         try:
 
             # ==========================================
@@ -464,10 +482,60 @@ class TicketController:
         id_ticket,
         usuario_sesion
     ):
+
         try:
+
+            # ==========================================
+            # OBTENER TICKET
+            # ==========================================
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            rol = usuario_sesion["rol"]
+
+            # ==========================================
+            # VALIDAR ACCESO DEL EMPLEADO
+            # ==========================================
+
+            if (
+                rol == "Empleado"
+                and ticket["id_usuario"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "No tiene permisos para consultar "
+                    "los comentarios de este ticket."
+                )
+
+            # ==========================================
+            # VALIDAR ACCESO DEL TÉCNICO
+            # ==========================================
+
+            if (
+                rol == "Tecnico"
+                and ticket["id_tecnico"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "Este ticket no está asignado a usted."
+                )
+
+            # ==========================================
+            # NOTAS INTERNAS
+            # ==========================================
+
             incluir_privados = (
-                usuario_sesion["rol"]
-                in (
+                rol in (
                     "Administrador",
                     "EncargadoTI",
                     "Tecnico"
@@ -497,8 +565,53 @@ class TicketController:
             )
 
     @staticmethod
-    def listar_historial(id_ticket):
+    def listar_historial(
+        id_ticket,
+        usuario_sesion
+    ):
+
         try:
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            rol = usuario_sesion["rol"]
+
+            # ==========================================
+            # EMPLEADO: SOLO SUS TICKETS
+            # ==========================================
+
+            if (
+                rol == "Empleado"
+                and ticket["id_usuario"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "No tiene permisos para consultar "
+                    "el historial de este ticket."
+                )
+
+            # ==========================================
+            # TÉCNICO: SOLO SUS TICKETS ASIGNADOS
+            # ==========================================
+
+            if (
+                rol == "Tecnico"
+                and ticket["id_tecnico"]
+                != usuario_sesion["id_usuario"]
+            ):
+                return (
+                    False,
+                    "Este ticket no está asignado a usted."
+                )
 
             historial = Ticket.listar_historial(
                 id_ticket=id_ticket

@@ -1,3 +1,5 @@
+from dbm import error
+
 import bcrypt
 import mysql.connector
 
@@ -53,6 +55,9 @@ class UsuarioController:
         except mysql.connector.Error as error:
             return False, f"Error de base de datos: {error}"
 
+        except Exception as error:
+            return False, f"No fue posible crear el usuario: {error}"
+
     @staticmethod
     def actualizar(
         id_usuario,
@@ -90,6 +95,9 @@ class UsuarioController:
         except mysql.connector.Error as error:
             return False, f"Error de base de datos: {error}"
 
+        except Exception as error:
+            return False, f"No fue posible actualizar el usuario: {error}"
+        
     @staticmethod
     def cambiar_estado(id_usuario, estado_actual):
         nuevo_estado = 0 if estado_actual else 1
@@ -109,9 +117,16 @@ class UsuarioController:
         except mysql.connector.Error as error:
             return False, f"Error de base de datos: {error}"
 
+        except Exception as error:
+            return False, f"No fue posible modificar el usuario: {error}"
+
     @staticmethod
     def cambiar_password(id_usuario, nueva_password):
+
         nueva_password = nueva_password.strip()
+
+        if not nueva_password:
+            return False, "La contraseña no puede estar vacía."
 
         if len(nueva_password) < 6:
             return False, "La contraseña debe tener al menos 6 caracteres."
@@ -122,6 +137,7 @@ class UsuarioController:
         ).decode("utf-8")
 
         try:
+
             actualizado = Usuario.cambiar_password(
                 id_usuario,
                 password_hash
@@ -134,3 +150,6 @@ class UsuarioController:
 
         except mysql.connector.Error as error:
             return False, f"Error de base de datos: {error}"
+
+        except Exception as error:
+            return False, f"No fue posible actualizar la contraseña: {error}"
