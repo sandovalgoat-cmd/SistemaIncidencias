@@ -864,14 +864,35 @@ class VistaUsuarios(ctk.CTkFrame):
         if not confirmar:
             return
 
-        exito, mensaje = UsuarioController.cambiar_estado(
-            self.usuario_seleccionado["id_usuario"],
-            estado_actual
-        )
+        try:
 
-        if exito:
-            messagebox.showinfo("Correcto", mensaje)
-            self.cargar_usuarios()
+            exito, mensaje = UsuarioController.cambiar_estado(
+                self.usuario_seleccionado["id_usuario"],
+                estado_actual
+            )
 
-        else:
-            messagebox.showerror("Error", mensaje)
+            if exito:
+
+                messagebox.showinfo(
+                    "Correcto",
+                    mensaje
+                )
+
+                self.cargar_usuarios()
+
+            else:
+
+                messagebox.showerror(
+                    "Error",
+                    mensaje
+                )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "No fue posible cambiar el estado "
+                    f"del usuario.\n\nDetalle: {error}"
+                )
+            )

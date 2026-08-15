@@ -391,12 +391,26 @@ class VistaCatalogos(ctk.CTkFrame):
 
         self.nuevo()
 
-        exito, resultado = (
-            CatalogoController.listar(
-                tabla=tabla,
-                usuario_sesion=self.usuario_sesion
+        try:
+
+            exito, resultado = (
+                CatalogoController.listar(
+                    tabla=tabla,
+                    usuario_sesion=self.usuario_sesion
+                )
             )
-        )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "No fue posible cargar el catálogo.\n\n"
+                    f"Detalle: {error}"
+                )
+            )
+
+            return
 
         if not exito:
             messagebox.showerror(
@@ -533,27 +547,41 @@ class VistaCatalogos(ctk.CTkFrame):
 
             return
 
-        if self.registro_seleccionado:
+        try:
 
-            exito, mensaje = (
-                CatalogoController.editar(
-                    tabla=self.catalogo_actual,
-                    id_registro=
-                        self.registro_seleccionado["id"],
-                    nombre=nombre,
-                    usuario_sesion=self.usuario_sesion
+            if self.registro_seleccionado:
+
+                exito, mensaje = (
+                    CatalogoController.editar(
+                        tabla=self.catalogo_actual,
+                        id_registro=
+                            self.registro_seleccionado["id"],
+                        nombre=nombre,
+                        usuario_sesion=self.usuario_sesion
+                    )
+                )
+
+            else:
+
+                exito, mensaje = (
+                    CatalogoController.crear(
+                        tabla=self.catalogo_actual,
+                        nombre=nombre,
+                        usuario_sesion=self.usuario_sesion
+                    )
+                )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "No fue posible guardar el registro.\n\n"
+                    f"Detalle: {error}"
                 )
             )
 
-        else:
-
-            exito, mensaje = (
-                CatalogoController.crear(
-                    tabla=self.catalogo_actual,
-                    nombre=nombre,
-                    usuario_sesion=self.usuario_sesion
-                )
-            )
+            return
 
         if exito:
 
@@ -595,15 +623,28 @@ class VistaCatalogos(ctk.CTkFrame):
         if not confirmar:
             return
 
-        exito, mensaje = (
-            CatalogoController.eliminar(
-                tabla=self.catalogo_actual,
-                id_registro=
-                    self.registro_seleccionado["id"],
-                usuario_sesion=self.usuario_sesion
-            )
-        )
+        try:
 
+            exito, mensaje = (
+                CatalogoController.eliminar(
+                    tabla=self.catalogo_actual,
+                    id_registro=
+                        self.registro_seleccionado["id"],
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "No fue posible eliminar el registro.\n\n"
+                    f"Detalle: {error}"
+                )
+            )
+
+            return
         if exito:
 
             messagebox.showinfo(

@@ -455,11 +455,16 @@ class VistaDetalleTicket(ctk.CTkFrame):
         )
 
 
-       # CONFIRMACIÓN
-       
+       # ==============================================
+        # CIERRE / CONFIRMACIÓN
+        # ==============================================
+
+        rol = self.usuario_sesion["rol"]
+        estado = self.ticket["estado"]
+
         if (
-            self.usuario_sesion["rol"] == "Empleado"
-            and self.ticket["estado"] == "Solucionado"
+            rol == "Empleado"
+            and estado == "Solucionado"
             and self.ticket["id_usuario"]
                 == self.usuario_sesion["id_usuario"]
         ):
@@ -469,9 +474,24 @@ class VistaDetalleTicket(ctk.CTkFrame):
             )
 
             fila_historial = 16
+
+        elif (
+            rol in (
+                "Administrador",
+                "EncargadoTI"
+            )
+            and estado == "Solucionado"
+        ):
+            self.crear_panel_cierre_administrativo(
+                contenedor,
+                fila=15
+            )
+
+            fila_historial = 16
+
         else:
             fila_historial = 15
-
+            
         # HISTORIAL
         self.crear_panel_historial(
             contenedor,
@@ -761,10 +781,18 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 )
 
         finally:
-            self.boton_asignar.configure(
-                state="normal",
-                text="Asignar técnico"
-            )
+
+            try:
+
+                if self.boton_asignar.winfo_exists():
+
+                    self.boton_asignar.configure(
+                        state="normal",
+                        text="Asignar técnico"
+                    )
+
+            except Exception:
+                pass
 
     def crear_panel_estado(
         self,
@@ -820,8 +848,8 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 "En Proceso"
             ],
 
-            "En Proceso": [
-                "En Espera",
+            "En Espera": [
+                "En Proceso",
                 "Solucionado"
             ],
 
@@ -952,13 +980,14 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 )
 
         finally:
-
-            if self.boton_estado.winfo_exists():
-
-                self.boton_estado.configure(
-                    state="normal",
-                    text="Actualizar estado"
-                )
+            try:
+                if self.boton_estado.winfo_exists():
+                    self.boton_estado.configure(
+                        state="normal",
+                        text="Actualizar estado"
+                    )
+            except Exception:
+                pass
 
     def crear_panel_comentarios(
                 self,
@@ -1528,24 +1557,6 @@ class VistaDetalleTicket(ctk.CTkFrame):
             )
 
             # ==========================================
-            # INDICADOR
-            # ==========================================
-
-            ctk.CTkLabel(
-                tarjeta,
-                text=movimiento["accion"],
-                font=("Arial", 13, "bold"),
-                text_color=COLOR_TEXTO,
-                anchor="w"
-            ).grid(
-                row=0,
-                column=1,
-                sticky="ew",
-                padx=(5, 15),
-                pady=(10, 2)
-            )
-
-            # ==========================================
             # ACCIÓN
             # ==========================================
 
@@ -1602,6 +1613,153 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 padx=(5, 15),
                 pady=(2, 10)
             )
+
+    def crear_panel_cierre_administrativo(
+        self,
+        master,
+        fila
+    ):
+        panel = ctk.CTkFrame(
+            master,
+            fg_color=COLOR_PANEL,
+            corner_radius=RADIO_PANEL,
+            border_width=1,
+            border_color=COLOR_ADVERTENCIA
+        )
+
+        panel.grid(
+            row=fila,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=25,
+            pady=(10, 25)
+        )
+
+        panel.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text="Cierre administrativo",
+            font=FUENTE_SECCION,
+            text_color=COLOR_TEXTO
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(18, 5)
+        )
+
+        ctk.CTkLabel(
+            panel,
+            text=(
+                "Este ticket fue marcado como solucionado "
+                "y está pendiente de confirmación del empleado.\n"
+                "Si es necesario, puede cerrarlo "
+                "administrativamente."
+            ),
+            font=FUENTE_NORMAL,
+            text_color=COLOR_TEXTO_SECUNDARIO,
+            justify="left",
+            anchor="w"
+        ).grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 15)
+        )
+
+        self.boton_cierre_admin = ctk.CTkButton(
+            panel,
+            text="Cerrar ticket administrativamente",
+            width=260,
+            height=ALTO_BOTON,
+            fg_color=COLOR_ADVERTENCIA,
+            hover_color=COLOR_ADVERTENCIA,
+            command=self.cerrar_administrativamente
+        )
+
+        self.boton_cierre_admin.grid(
+            row=2,
+            column=0,
+            sticky="w",
+            padx=20,
+            pady=(0, 20)
+        )
+
+    def cerrar_administrativamente(self):
+
+        confirmar = messagebox.askyesno(
+            "Cierre administrativo",
+            (
+                "¿Desea cerrar administrativamente este ticket?\n\n"
+                "El empleado todavía no ha confirmado "
+                "la solución.\n\n"
+                "Esta acción quedará registrada "
+                "en el historial."
+            )
+        )
+
+        if not confirmar:
+            return
+
+        self.boton_cierre_admin.configure(
+            state="disabled",
+            text="Cerrando..."
+        )
+
+        try:
+
+            exito, mensaje = (
+                TicketController.cerrar_administrativamente(
+                    id_ticket=self.ticket["id_ticket"],
+                    usuario_sesion=self.usuario_sesion
+                )
+            )
+
+            if exito:
+
+                messagebox.showinfo(
+                    "Ticket cerrado",
+                    mensaje
+                )
+
+                self.regresar_callback()
+                return
+
+            messagebox.showerror(
+                "Error",
+                mensaje
+            )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Error",
+                (
+                    "Ocurrió un error al cerrar "
+                    "administrativamente el ticket.\n\n"
+                    f"{error}"
+                )
+            )
+
+        finally:
+
+            try:
+                if self.boton_cierre_admin.winfo_exists():
+
+                    self.boton_cierre_admin.configure(
+                        state="normal",
+                        text="Cerrar ticket administrativamente"
+                    )
+
+            except Exception:
+                pass
 
     def crear_panel_confirmacion(
             self,

@@ -918,4 +918,68 @@ class TicketController:
             return (
                 False,
                 f"No fue posible cargar el resumen: {error}"
+            )    
+
+    @staticmethod
+    def cerrar_administrativamente(
+        id_ticket,
+        usuario_sesion
+    ):
+        rol = usuario_sesion["rol"]
+
+        # ==========================================
+        # VALIDAR ROL
+        # ==========================================
+
+        if rol not in (
+            "Administrador",
+            "EncargadoTI"
+        ):
+            return (
+                False,
+                "No tiene permisos para cerrar "
+                "administrativamente un ticket."
+            )
+
+        try:
+
+            ticket = Ticket.obtener_ticket_por_id(
+                id_ticket
+            )
+
+            if ticket is None:
+                return (
+                    False,
+                    "El ticket no existe."
+                )
+
+            if ticket["estado"] != "Solucionado":
+                return (
+                    False,
+                    "Solo se pueden cerrar administrativamente "
+                    "tickets que estén en estado Solucionado."
+                )
+
+            Ticket.cerrar_administrativamente(
+                id_ticket=id_ticket,
+                id_usuario_accion=
+                    usuario_sesion["id_usuario"],
+                rol_accion=rol
+            )
+
+            return (
+                True,
+                "El ticket fue cerrado administrativamente."
+            )
+
+        except mysql.connector.Error as error:
+            return (
+                False,
+                f"Error de base de datos: {error}"
+            )
+
+        except Exception as error:
+            return (
+                False,
+                f"No fue posible cerrar el ticket: {error}"
             )               

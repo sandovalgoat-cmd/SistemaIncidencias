@@ -1979,4 +1979,146 @@ class Ticket:
                 conexion is not None
                 and conexion.is_connected()
             ):
-                conexion.close()                                 
+                conexion.close()     
+
+    @staticmethod
+    def cerrar_administrativamente(
+        id_ticket,
+        id_usuario_accion,
+        rol_accion
+    ):
+        conexion = None
+        cursor = None
+
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor(dictionary=True)
+
+            # ==========================================
+            # CONSULTAR TICKET
+            # ==========================================
+
+            sql_ticket = """
+                SELECT
+                    t.id_ticket,
+                    e.nombre AS estado
+                FROM tickets AS t
+
+                INNER JOIN estados AS e
+                    ON t.id_estado = e.id_estado
+
+                WHERE t.id_ticket = %s
+                LIMIT 1
+            """
+
+            cursor.execute(
+                sql_ticket,
+                (id_ticket,)
+            )
+
+            ticket = cursor.fetchone()
+
+            if ticket is None:
+                raise ValueError(
+                    "El ticket no existe."
+                )
+
+            # Solo tickets solucionados
+            if ticket["estado"] != "Solucionado":
+                raise ValueError(
+                    "Solo se pueden cerrar administrativamente "
+                    "tickets en estado 'Solucionado'."
+                )
+
+            # ==========================================
+            # OBTENER ESTADO CERRADO
+            # ==========================================
+
+            sql_estado = """
+                SELECT id_estado
+                FROM estados
+                WHERE nombre = 'Cerrado'
+                LIMIT 1
+            """
+
+            cursor.execute(sql_estado)
+
+            estado = cursor.fetchone()
+
+            if estado is None:
+                raise ValueError(
+                    "No existe el estado 'Cerrado'."
+                )
+
+            # ==========================================
+            # CERRAR TICKET
+            # ==========================================
+
+            sql_actualizar = """
+                UPDATE tickets
+                SET
+                    id_estado = %s,
+                    fecha_cierre = NOW()
+                WHERE id_ticket = %s
+            """
+
+            cursor.execute(
+                sql_actualizar,
+                (
+                    estado["id_estado"],
+                    id_ticket
+                )
+            )
+
+            # ==========================================
+            # REGISTRAR HISTORIAL
+            # ==========================================
+
+            accion = (
+                f"Ticket cerrado administrativamente "
+                f"por {rol_accion}"
+            )
+
+            sql_historial = """
+                INSERT INTO historial (
+                    id_ticket,
+                    id_usuario,
+                    accion,
+                    fecha
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    NOW()
+                )
+            """
+
+            cursor.execute(
+                sql_historial,
+                (
+                    id_ticket,
+                    id_usuario_accion,
+                    accion
+                )
+            )
+
+            conexion.commit()
+
+            return True
+
+        except Exception:
+            if conexion is not None:
+                conexion.rollback()
+
+            raise
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                conexion is not None
+                and conexion.is_connected()
+            ):
+                conexion.close()                          

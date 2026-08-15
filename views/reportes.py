@@ -260,83 +260,97 @@ class VistaReportes(ctk.CTkFrame):
         # Limpiar información anterior
         self.limpiar()
 
-        # ==========================================
-        # OBTENER REPORTES GENERALES
-        # ==========================================
+        try:
 
-        exito, resultado = (
-            TicketController.obtener_reportes(
-                self.usuario_sesion
+            # ==========================================
+            # OBTENER REPORTES GENERALES
+            # ==========================================
+
+            exito, resultado = (
+                TicketController.obtener_reportes(
+                    self.usuario_sesion
+                )
             )
-        )
 
-        if not exito:
+            if not exito:
+
+                messagebox.showerror(
+                    "Error",
+                    resultado
+                )
+
+                return
+
+            # ==========================================
+            # MOSTRAR RESUMEN GENERAL
+            # ==========================================
+
+            self.crear_resumen(
+                resultado["general"]
+            )
+
+            # ==========================================
+            # OBTENER MÉTRICAS POR FECHA
+            # ==========================================
+
+            exito_metricas, metricas = (
+                TicketController.obtener_metricas_tiempo(
+                    usuario_sesion=self.usuario_sesion,
+                    fecha_inicio=fecha_inicio,
+                    fecha_fin=fecha_fin
+                )
+            )
+
+            # ==========================================
+            # MOSTRAR MÉTRICAS DE TIEMPO
+            # ==========================================
+
+            if exito_metricas:
+
+                self.crear_metricas_tiempo(
+                    metricas
+                )
+
+            else:
+
+                messagebox.showwarning(
+                    "Métricas",
+                    metricas
+                )
+
+            # ==========================================
+            # MOSTRAR TABLAS
+            # ==========================================
+
+            self.crear_tabla(
+                "Tickets por estado",
+                resultado["estados"]
+            )
+
+            self.crear_tabla(
+                "Tickets por prioridad",
+                resultado["prioridades"]
+            )
+
+            self.crear_tabla(
+                "Tickets por categoría",
+                resultado["categorias"]
+            )
+
+            self.crear_tabla(
+                "Tickets por técnico",
+                resultado["tecnicos"]
+            )
+
+        except Exception as error:
+
             messagebox.showerror(
                 "Error",
-                resultado
+                (
+                    "No fue posible cargar los reportes.\n\n"
+                    f"Detalle: {error}"
+                )
             )
-            return
-
-        # ==========================================
-        # MOSTRAR RESUMEN GENERAL
-        # ==========================================
-
-        self.crear_resumen(
-            resultado["general"]
-        )
-
-        # ==========================================
-        # OBTENER MÉTRICAS POR FECHA
-        # ==========================================
-
-        exito_metricas, metricas = (
-            TicketController.obtener_metricas_tiempo(
-                usuario_sesion=self.usuario_sesion,
-                fecha_inicio=fecha_inicio,
-                fecha_fin=fecha_fin
-            )
-        )
-
-        # ==========================================
-        # MOSTRAR MÉTRICAS DE TIEMPO
-        # ==========================================
-
-        if exito_metricas:
-
-            self.crear_metricas_tiempo(
-                metricas
-            )
-
-        else:
-
-            messagebox.showwarning(
-                "Métricas",
-                metricas
-            )
-
-        # ==========================================
-        # MOSTRAR TABLAS
-        # ==========================================
-
-        self.crear_tabla(
-            "Tickets por estado",
-            resultado["estados"]
-        )
-
-        self.crear_tabla(
-            "Tickets por prioridad",
-            resultado["prioridades"]
-        )
-
-        self.crear_tabla(
-            "Tickets por categoría",
-            resultado["categorias"]
-        )
-
-        self.crear_tabla(
-            "Tickets por técnico",
-            resultado["tecnicos"]
-        )
 
     def crear_resumen(self, datos):
 
