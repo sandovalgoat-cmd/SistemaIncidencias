@@ -6,5 +6,5 @@ def conectar():
         port=3306,
         user="root",
         password="",
-        database=" SistemaIncidencias"
+        database="SistemaIncidencias"
     )
