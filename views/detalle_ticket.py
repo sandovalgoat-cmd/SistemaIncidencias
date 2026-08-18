@@ -848,18 +848,18 @@ class VistaDetalleTicket(ctk.CTkFrame):
                 "En Proceso"
             ],
 
+            "En Proceso": [
+                "En Espera",
+                "Solucionado"
+            ],
+
             "En Espera": [
                 "En Proceso",
                 "Solucionado"
             ],
 
-            "En Espera": [
-                "En Proceso"
-            ],
-
             "Solucionado": []
         }
-
         estados = transiciones.get(
             estado_actual,
             []
